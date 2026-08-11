@@ -1,0 +1,43 @@
+{
+  "name": "ba2md-cli",
+  "version": "0.1.0",
+  "description": "Workspace CLI for ba2md source-grounded detailed design workflows",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "ba2md": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "skill",
+    "README.md",
+    "!dist/tests"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test --test-reporter=spec dist/tests/*.test.js",
+    "prepack": "npm run build"
+  },
+  "keywords": [
+    "ba2md",
+    "sdd",
+    "cli",
+    "workspace"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^13.1.0",
+    "yaml": "^2.7.1",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "typescript": "^5.8.2"
+  }
+}
