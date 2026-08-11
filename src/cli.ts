@@ -3,7 +3,8 @@ import { Command } from 'commander';
 import { createRequire } from 'node:module';
 import { isCliError } from './errors.js';
 import { runDoctor, formatDoctor } from './diagnostics/doctor.js';
-import { collectStatus, formatStatus } from './diagnostics/status.js';
+import { collectDiscover, formatDiscover } from './diagnostics/discover.js';
+import { collectStatus, formatStatus, formatStatusJson } from './diagnostics/status.js';
 import { addRequirement, listRequirements, removeRequirement } from './requirements/import.js';
 import {
   addSource,
@@ -162,10 +163,31 @@ async function main(): Promise<void> {
   program
     .command('status')
     .description('Summarize workspace resources and Skill installation')
-    .action(async () => {
+    .option('--json', 'emit machine-readable JSON')
+    .action(async (options: { json?: boolean }) => {
       const { root, config } = await requireWorkspace();
       const report = await collectStatus(root, config);
+      if (options.json) {
+        process.stdout.write(formatStatusJson(report));
+        return;
+      }
       console.log(formatStatus(report));
+    });
+
+  program
+    .command('discover')
+    .description(
+      'Inventory managed sources/wiki and expand logical projects for Skill Project Discovery',
+    )
+    .option('--json', 'emit machine-readable JSON')
+    .action(async (options: { json?: boolean }) => {
+      const { root, config } = await requireWorkspace();
+      const report = await collectDiscover(root, config);
+      if (options.json) {
+        process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+        return;
+      }
+      console.log(formatDiscover(report));
     });
 
   program

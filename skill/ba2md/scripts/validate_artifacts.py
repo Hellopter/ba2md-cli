@@ -10,6 +10,9 @@ from pathlib import Path
 ID_RE = re.compile(r"\b([RFSPDACGQ]-[A-Z0-9][A-Z0-9-]*-\d{3})\b")
 ANCHOR_RE = re.compile(r"`?([^`|]+?):(\d+)(?:-(\d+))?`?")
 PLACEHOLDER_RE = re.compile(r"TODO|TBD|<design-title>|<feature-name>|<one-line|YYYY-MM-DD|<optional>", re.IGNORECASE)
+BARE_COLLECTION_ROOT_RE = re.compile(r"^(?:\.?/)?(?:sources|wiki|souces)/?$", re.IGNORECASE)
+MANAGED_SOURCE_PATH_RE = re.compile(r"(?:^|[\s`])((?:sources|souces)/([^/`\s|]+))", re.IGNORECASE)
+MANAGED_WIKI_PATH_RE = re.compile(r"(?:^|[\s`])(wiki/([^/`\s|]+))", re.IGNORECASE)
 
 
 def split_row(line):
@@ -218,12 +221,87 @@ def load_registry(product_dir, workspace, errors, warnings):
     return evidence, claims, issues, decisions, questions
 
 
+def parse_top_level_map_keys(text, section_name):
+    """Return keys of a top-level YAML map section without requiring PyYAML."""
+    lines = text.splitlines()
+    keys = []
+    in_section = False
+    section_indent = None
+    for raw in lines:
+        if not raw.strip() or raw.lstrip().startswith("#"):
+            continue
+        indent = len(raw) - len(raw.lstrip(" "))
+        stripped = raw.strip()
+        if not in_section:
+            if re.fullmatch(rf"{re.escape(section_name)}\s*:\s*(?:#.*)?", stripped):
+                in_section = True
+                section_indent = indent
+            continue
+        if indent <= section_indent:
+            break
+        # Immediate map keys only (section indent + 2 spaces is the workspace.yaml style).
+        if indent == section_indent + 2 and re.match(r"^[A-Za-z0-9._-]+\s*:", stripped):
+            key = stripped.split(":", 1)[0].strip()
+            if key not in keys:
+                keys.append(key)
+    return keys
+
+
+def load_workspace_registry(workspace):
+    config_path = Path(workspace) / "workspace.yaml"
+    if not config_path.is_file():
+        return {"sources": [], "wiki": [], "present": False}
+    text = config_path.read_text(encoding="utf-8")
+    return {
+        "sources": parse_top_level_map_keys(text, "sources"),
+        "wiki": parse_top_level_map_keys(text, "wiki"),
+        "present": True,
+    }
+
+
+def normalize_root_path(value):
+    rel = (value or "").strip().strip("`").strip()
+    rel = rel.replace("\\", "/")
+    while rel.startswith("./"):
+        rel = rel[2:]
+    return rel.rstrip("/")
+
+
+def is_bare_collection_root(value):
+    rel = normalize_root_path(value)
+    return bool(BARE_COLLECTION_ROOT_RE.fullmatch(rel))
+
+
+def managed_ids_mentioned(plan_text, selected_rows, impact_rows):
+    """Collect managed source/wiki ids referenced by concrete paths or pair ids."""
+    source_ids = set()
+    wiki_ids = set()
+    blobs = [plan_text]
+    for row in selected_rows:
+        blobs.extend([row.get("wiki", ""), row.get("sources", ""), row.get("pair_id", "")])
+    for row in impact_rows:
+        blobs.extend(row.values())
+    joined = "\n".join(blobs)
+    for match in MANAGED_SOURCE_PATH_RE.finditer(joined):
+        source_ids.add(match.group(2))
+    for match in MANAGED_WIKI_PATH_RE.finditer(joined):
+        wiki_ids.add(match.group(2))
+    # Pair IDs often equal managed ids.
+    for row in list(selected_rows) + list(impact_rows):
+        pair_id = (row.get("pair_id") or "").strip().strip("`")
+        if pair_id:
+            source_ids.add(pair_id)
+            wiki_ids.add(pair_id)
+    return source_ids, wiki_ids
+
+
 def validate_plan(product_dir, workspace, errors):
     path = product_dir / "research-plan.md"
     if not path.is_file():
         errors.append(f"missing required artifact: {path}")
         return
-    tables = parse_tables(path.read_text(encoding="utf-8"))
+    plan_text = path.read_text(encoding="utf-8")
+    tables = parse_tables(plan_text)
     pairs = find_table(tables, {
         "pair_id": ("Pair ID",),
         "wiki": ("Wiki root",),
@@ -270,6 +348,12 @@ def validate_plan(product_dir, workspace, errors):
         selected_pairs.add(pair_id)
         for label, value in (("Wiki root", row["wiki"]), ("Sources root", row["sources"])):
             rel = value.strip().strip("`")
+            if is_bare_collection_root(rel):
+                errors.append(
+                    f"project pair {pair_id} uses bare collection root as {label}: {rel} "
+                    f"(use sources/<id> or wiki/<id>[/<project>])"
+                )
+                continue
             path_value = Path(rel)
             if not path_value.is_absolute():
                 path_value = workspace / path_value
@@ -330,6 +414,31 @@ def validate_plan(product_dir, workspace, errors):
                 errors.append(f"cross-project boundary {boundary_id} references an unselected {endpoint} pair: {pair_id}")
         if not nonempty(row["status"]):
             errors.append(f"cross-project boundary {boundary_id} is missing Status")
+
+    # Registry coverage: every managed source/wiki id must appear in the plan inventory.
+    registry = load_workspace_registry(workspace)
+    if registry["present"]:
+        mentioned_sources, mentioned_wiki = managed_ids_mentioned(plan_text, pairs, impact_rows)
+        for source_id in registry["sources"]:
+            if source_id not in mentioned_sources and f"sources/{source_id}" not in plan_text and f"souces/{source_id}" not in plan_text:
+                errors.append(
+                    f"workspace.yaml source \"{source_id}\" is not covered in research-plan.md "
+                    f"(reference sources/{source_id} or include it as select/exclude in the Candidate Project Impact Map)"
+                )
+        for wiki_id in registry["wiki"]:
+            if wiki_id not in mentioned_wiki and f"wiki/{wiki_id}" not in plan_text:
+                errors.append(
+                    f"workspace.yaml wiki \"{wiki_id}\" is not covered in research-plan.md "
+                    f"(reference wiki/{wiki_id} or include it as select/exclude in the Candidate Project Impact Map)"
+                )
+        if len(registry["sources"]) > 1 and len(selected_pairs) == 1:
+            # Soft structural warning path is not available; require impact map to mention all source ids.
+            for source_id in registry["sources"]:
+                if source_id not in impact_pairs and source_id not in mentioned_sources:
+                    errors.append(
+                        f"multi-source workspace: source \"{source_id}\" must appear in the Candidate Project Impact Map "
+                        f"when only one pair is selected"
+                    )
 
 
 def validate_briefs(product_dir, workspace, errors, warnings):

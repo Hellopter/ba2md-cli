@@ -40,7 +40,7 @@
 
 | Candidate ID | Label | Status | Source type | Claim | Exact raw anchor | Symbol | Supported sections |
 |--------------|-------|--------|-------------|-------|------------------|--------|--------------------|
-| F-<PAIR>-001 | FACT | FOUND | code/spec/standard/design/config/schema/deploy/alert | | `sources/...:1-10` | | |
+| F-<PAIR>-001 | FACT | FOUND | code/spec/standard/design/config/schema/deploy/alert | | `sources/<source-id>/...:1-10` | | |
 
 ## Implementation Inventory Results
 

@@ -23,9 +23,15 @@ Write `{WORKSPACE}/product/<slug>/research-plan.md`:
 - Constraints:
 - Acceptance signals:
 
+## Inventory Source
+- Command or files used (`ba2md discover --json` / `ba2md status --json` / `workspace.yaml` + listing):
+- Managed source ids:
+- Managed wiki ids / logical wiki projects:
+
 ## Selected Project Pairs
 | Pair ID | Wiki root | Sources root | Role in requirement | Pair proof |
 |---------|-----------|--------------|---------------------|------------|
+| | `wiki/<id>` or `wiki/<id>/<project>` | `sources/<id>` | | |
 
 ## Candidate Project Impact Map
 | Pair ID | Role | Requirement signals | Wiki/source basis | Expected impact | Decision | Exclusion reason |
@@ -66,7 +72,9 @@ These tables prevent scope drift, but keep them lean. For ordinary single-pair w
 Use the lightweight **Draft Readiness Check** by default. Before broad draft writing, confirm:
 
 - the selected requirement unit has path/hash/anchors;
-- the owning pair(s) have defensible wiki/source pairing proof;
+- inventory was taken from `ba2md discover` / `status` / `workspace.yaml` before content search;
+- every managed source id and logical wiki project is selected or explicitly excluded in the Candidate Project Impact Map;
+- the owning pair(s) have defensible wiki/source pairing proof with concrete `wiki/...` and `sources/<id>` roots (not bare collection roots);
 - selected source roots are readable;
 - load-bearing current facts are either `VERIFIED` or recorded as GAP;
 - known material boundaries have an owner/endpoints, an explicit exclusion, or GAP;
@@ -115,12 +123,13 @@ Give each subagent:
 - the relevant requirement excerpt and requirement ID;
 - exactly one Pair ID, or one named cross-pair boundary;
 - selected wiki SUMMARY entry pages;
-- sources root and known anchors;
+- **concrete** sources root (`sources/<id>` or deeper path inside it) and known anchors — never the bare `sources/` collection;
 - bounded questions and expected evidence types;
 - only relevant template constraints, never every section file;
 - the Java test exclusion: `test.java`, `src/test/`, `*Test.java`, `*Tests.java`, and `*IT.java`;
 - `assets/research-brief-template.md`;
 - instruction to obey repository-local `AGENTS.md` and use context-graph tools before grep when available;
+- instruction to search only under the assigned pair roots; do not run workspace-wide `sources/**` or `wiki/**` enumeration;
 - instruction to report contrary, missing, and insufficient evidence;
 - instruction not to edit the final design.
 

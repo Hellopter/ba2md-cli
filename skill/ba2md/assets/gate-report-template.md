@@ -32,13 +32,13 @@
 |---------|---------|-------------------------------------------|-----------------|--------|
 | | | | | DIRTY/CLEARED |
 
-## Critical Questions for Discussion
+## Critical Backlog for User-Led Review
 
-> Show only one question to the user at a time. Missing implementation facts do not belong in this table; record them as GAPs.
+> List load-bearing user-decidable items discovered while drafting/gating. Present this table as a menu in Draft Review; do not auto-open the first row as a popup. Missing implementation facts do not belong here — record them as GAPs. Status values: OPEN / ENGAGED / ACCEPTED / DEFERRED / SUPERSEDED.
 
 | Question ID | Question | Known facts or gaps | Recommended option and rationale | Other options | Impact | Status |
 |-------------|----------|---------------------|----------------------------------|---------------|--------|--------|
-| Q-<FEATURE>-001 | | | | | | OPEN/ACCEPTED |
+| Q-<FEATURE>-001 | | | | | | OPEN |
 
 ## Routing Decision
 
@@ -71,14 +71,17 @@
 | ADD insufficiency coverage | |
 | Open critical GAPs / CONFLICTs | |
 | Unconfirmed critical user questions | |
-| Open-ended user feedback opportunity completed | |
+| User-led review handoff completed | |
+| User-engaged decisions recorded | |
 
 ## Draft Review Summary
 
 - Draft path:
 - Recommended design direction:
 - Key design decisions:
+- Critical backlog presented (not auto-asked):
 - Changes from previous version:
 - Resolved issues:
 - Remaining non-critical GAPs:
-- Ready as a final candidate:
+- Floor handed to user / awaiting user lead:
+- Ready as a final candidate only after explicit user confirmation:

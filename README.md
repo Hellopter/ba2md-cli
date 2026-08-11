@@ -28,9 +28,13 @@ ba2md wiki add /Users/gaoaotian/Desktop/referrance/docs --id docs
 ba2md requirement add /Users/gaoaotian/Desktop/referrance/llm-wiki.md
 
 ba2md status
+ba2md status --json
+ba2md discover
+ba2md discover --json
 ba2md doctor
 
 # Then run Claude or OpenCode in this workspace and invoke the ba2md Skill.
+# The Skill must run `ba2md discover --json` (or read workspace.yaml) before content search.
 ```
 
 ## Workspace layout
@@ -65,6 +69,9 @@ No workspace Git repo is initialized. Root `AGENTS.md` / `CLAUDE.md` are not mod
 | `ba2md requirement list` | List requirement files |
 | `ba2md requirement remove <name.md>` | Delete snapshot + registry entry |
 | `ba2md status` | Summarize resources and Skill installs |
+| `ba2md status --json` | Same summary as machine-readable JSON |
+| `ba2md discover` | Inventory managed sources/wiki and expand logical projects (nested wiki) |
+| `ba2md discover --json` | Machine-readable discovery inventory for Skill Project Discovery |
 | `ba2md doctor` | Health checks; nonzero exit on problems |
 | `ba2md skill install` | Install/refresh Skill into `.agents` and `.claude` |
 | `ba2md skill status` | Show digests / drift |
@@ -86,7 +93,7 @@ Commands invoked below the workspace root walk upward to the nearest `workspace.
 
 ## AI generation
 
-Install Claude Code or OpenCode, open the initialized workspace, and use the **ba2md** Skill (`$ba2md`). The Skill reads `requirements/*.md`, uses `wiki/` for discovery and `sources/` for implementation facts, and writes under `product/`.
+Install Claude Code or OpenCode, open the initialized workspace, and use the **ba2md** Skill (`$ba2md`). The Skill starts Project Discovery from `ba2md discover --json` (or `workspace.yaml` + one-level listing), uses `wiki/<id>/` (and nested logical projects) for discovery, and uses `sources/<id>/` for implementation facts. It writes under `product/`. Agents must not enumerate projects with workspace-wide `sources/**` or `wiki/*.md` searches.
 
 ## Development
 

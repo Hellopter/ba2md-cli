@@ -12,7 +12,7 @@
 | Evidence Reconcile | VERIFIED evidence and issues | Current-to-target decisions, alternatives, assumptions, conflicts, and GAPs recorded | Draft Writing, Research, User Decision |
 | Draft Writing | Registry, decisions, accepted evidence, active template | Draft sections contain traceable FACTs, explicit PROPOSALs/DECISIONs, and visible GAPs | Quality Gate, Repair Research, Project Discovery, User Decision |
 | Quality Gate | Draft + registry + process artifacts | Mechanical and semantic results classified and routed | Draft Review, Draft Writing, Repair Research, Evidence Reconcile, Project Discovery, User Decision |
-| Draft Review | Gated draft or final candidate | User decisions and free-form feedback recorded, routed, and applied; user confirms final candidate | Final, Draft Writing, Research, Project Discovery |
+| Draft Review | Gated draft or revised candidate | Review package presented; user leads; resolutions recorded and routed; user explicitly confirms a final candidate | Final, Draft Writing, Research, Project Discovery, Requirement Intake, Evidence Reconcile |
 | Final | Confirmed passing final candidate | Final validator passes and status is final | End |
 
 Run this graph independently for each requirement unit in a directory queue. Do not share evidence registries or Decision Maps across units. When a requirement hash changes, return to Requirement Intake and propagate `DIRTY`.
@@ -103,7 +103,7 @@ Do not patch only the visible sentence if downstream design, tests, rollout, per
 | `EVIDENCE` | Missing, wrong, stale, or unverified raw fact | Repair Research |
 | `CONFLICT` | Authorities disagree or decision is unresolved | Evidence Reconcile; research first if facts are missing |
 | `PAIRING` | Wrong or incomplete wiki↔sources ownership | Project Discovery |
-| `DECISION` | Product/business/scope choice required | Draft Review/User Decision |
+| `DECISION` | Product/business/scope choice required | Draft Review (record on critical backlog; wait for user lead) |
 | `CRITICAL_GAP` | Implementation cannot be responsibly finalized | Research only with a new search hypothesis; otherwise keep Draft and block Final |
 
 The gate may fix `MECHANICAL` issues only. It must not invent routes, fields, symbols, thresholds, permissions, alarms, data models, or change rationales.
@@ -120,7 +120,11 @@ Always run full semantic gate before presenting a final candidate.
 
 ## Enter Draft Review
 
-After a readable draft and gate report exist, present a review summary before asking questions:
+After a readable draft and gate report exist, enter Draft Review as a **user-led revision loop**. Present the review package, then stop and wait for the user.
+
+### Review package
+
+Present all of the following in one handoff, then end the turn:
 
 - draft path and status;
 - selected project pairs and why;
@@ -129,25 +133,23 @@ After a readable draft and gate report exist, present a review summary before as
 - key `REUSE/MODIFY/EXTEND/ADD` decisions;
 - GAPs/CONFLICTs and whether they block Final;
 - gate findings and routing;
-- agent-identified critical decisions.
+- **critical backlog**: agent-recorded load-bearing questions from drafting/gating, each with short context only.
 
-Treat this as collaborative design review, not a questionnaire. The purpose is to let the user react to the draft, the evidence, and the design tradeoffs.
+The critical backlog is a **menu**, not a script. List it; do not open the first item as a question, do not fire a structured popup, and do not start grilling in the same turn as the handoff.
 
-## Discussion Protocol
+Close the handoff by handing the floor: the user may raise their own concerns, pick a backlog item, request grilling, request research, request wording changes, or say the draft is ready to finalize.
 
-When a critical user-decidable question exists, handle one at a time. Each question should include:
+## User-Led Intake and Grilling
 
-- the question and why it must be decided now;
-- known FACTs, GAPs, or CONFLICTs;
-- two or three options when useful;
-- the recommended first option and rationale;
-- each option's design, compatibility, migration, and risk impact.
+**User lead first.** The user's free-form reaction outranks the agent's backlog order. The user may reject the whole framing, rewrite the requirement, change scope, propose another design, request more research, edit wording, pick a backlog item, ask to be grilled, or confirm a candidate.
 
-Every discussion round must also permit free-form feedback. The user may choose an option, reject the framing, introduce a new requirement, propose another solution, change scope, request more research, or ask for wording changes.
+**Load grilling only on demand.** When the user opts in (`grill` / `讨论` / `承重确认` / `逐项过` or equivalent) or engages a specific backlog item / design choice that needs a decision, Read and follow `{SKILL_DIR}/grilling/SKILL.md`. That nested sub-skill loads `references/load-bearing.md`, runs one load-bearing question per turn, and returns Decision Map fields to the parent.
 
-Do not treat the agent's question queue as exhaustive user feedback. After resolving all critical questions, explicitly ask whether the user wants changes to requirement interpretation, scope, design choices, risk treatment, evidence presentation, or wording before preparing the final candidate.
+Do **not** load `grilling/SKILL.md` on the handoff turn. Free-form feedback that needs no decision tree stays in the parent: write the Decision Map and route.
 
-Do not ask the user to guess missing implementation details such as interfaces, fields, class names, thresholds, configuration, permissions, or alerts. Record those as GAPs.
+While grilling is active, the parent still owns routing, research, rewrite, gate, and Final. Grilling must not write the final document or wholesale-rewrite the draft. Stop grilling immediately when the user raises a different concern, ends the grill, or asks for a rewrite.
+
+Agent-only backlog items the user never engages may remain listed; they do not authorize loading grilling, and they do not by themselves unlock Final.
 
 ## Decision Map and Routing
 
@@ -166,20 +168,31 @@ Route feedback as follows:
 
 When multiple feedback items exist, return to the earliest affected node: `Requirement Intake → Project Discovery → Research → Evidence Reconcile → Draft Writing → Quality Gate → Draft Review`.
 
-Accumulate decisions that require no research until the current discussion cluster clears, then apply them together. If a decision requires new facts, pause dependent questions, return to research immediately, and resume unresolved questions afterward.
+Accumulate decisions that need no research until the current user-led cluster clears, then apply them together into a new draft. If a decision needs new facts, pause dependent grilling, return to research immediately, and resume only after the revised draft is re-presented.
+
+After every routed change cycle, re-enter Draft Review with:
+
+- the updated draft path;
+- a change summary relative to the previous draft;
+- resolved Decision Map items;
+- remaining critical backlog;
+- remaining non-critical GAPs.
+
+Then hand the floor again. The loop continues until the user explicitly confirms a candidate.
 
 ## Final Convergence
 
-Discussion converges when:
+The revision loop may end only when:
 
-- every critical user-decidable question is confirmed or explicitly deferred as non-final;
-- the user has had an open-ended modification opportunity after the agent's questions;
-- user changes are classified and applied;
-- no new requirement, project, or evidence backtrack remains;
+- the user has seen the latest gated candidate and its change summary;
+- every user-engaged critical decision is confirmed, deferred as non-final, or superseded in the Decision Map;
+- every free-form user change from the latest cycle is classified and applied;
+- no open backtrack remains from the latest resolutions;
 - every `DIRTY` section is rewritten;
-- the required gate level passes.
+- the required gate level passes;
+- the user explicitly confirms that candidate as final (`定稿` / `确认终稿` / `finalize` or equivalent).
 
-Then present the updated final candidate, a change summary relative to the previous version, resolved issues, and remaining non-critical GAPs. Generate the final document only after explicit user confirmation. Any content change before confirmation returns to the appropriate node and requires the appropriate gate again.
+Silence, vague assent, or “the backlog is empty” is not confirmation. Generate the final document only after that explicit confirmation. Any content change before confirmation returns to the appropriate node, requires the appropriate gate, and re-enters Draft Review.
 
 ## Parallelism
 

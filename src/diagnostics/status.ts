@@ -86,6 +86,10 @@ export async function collectStatus(
   };
 }
 
+export function formatStatusJson(report: StatusReport): string {
+  return `${JSON.stringify(report, null, 2)}\n`;
+}
+
 export function formatStatus(report: StatusReport): string {
   const lines: string[] = [];
   lines.push(`Workspace: ${report.name} (v${report.version})`);

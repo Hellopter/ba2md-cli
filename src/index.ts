@@ -6,4 +6,5 @@ export { addSource, addWiki, listResources, removeResource } from './resources/s
 export { addRequirement, listRequirements, removeRequirement } from './requirements/import.js';
 export { installSkill, inspectSkillInstalls, repairSkill } from './skill/install.js';
 export { collectStatus } from './diagnostics/status.js';
+export { collectDiscover } from './diagnostics/discover.js';
 export { runDoctor } from './diagnostics/doctor.js';

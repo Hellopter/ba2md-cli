@@ -101,8 +101,8 @@ Use these gate outcomes:
 
 | Outcome | Meaning |
 |---------|---------|
-| `PASS` | No revision or discussion required |
-| `PASS_WITH_DISCUSSION` | Draft is presentable but contains user-decidable questions |
+| `PASS` | No revision required; still enter Draft Review to hand the floor |
+| `PASS_WITH_DISCUSSION` | Draft is presentable and carries a critical backlog for user-led review |
 | `RESEARCH_REQUIRED` | Evidence is missing, incorrect, or unverified |
 | `REVISION_REQUIRED` | Evidence is sufficient but design expression or coverage needs revision |
 | `RECONCILE_REQUIRED` | Authoritative sources or design choices are unresolved |
@@ -138,20 +138,28 @@ Do not require workspace-wide wiki scanning, complete inventories, or full closu
 
 ## User Discussion and Decision Map
 
-Use `Q-*` only for critical questions the user can decide. Show one question at a time, offer two or three options when useful, place the recommendation first, and include evidence, rationale, compatibility, migration, and risk impact. Do not limit discussion rounds. Record free-form user changes in the Decision Map as well.
+Record agent-identified critical questions as `Q-*` in the gate report's critical backlog during Quality Gate / Draft Review preparation. `Q-*` items are backlog entries for the user to lead with — not an auto-play interview script.
 
-Do not treat the question queue as exhaustive user feedback. After agent-identified critical questions are resolved, the user must get an open-ended chance to request changes to requirement interpretation, scope, design choices, risk treatment, evidence presentation, or wording before final candidate preparation.
+Use `Q-*` only for matters the user can decide: business behavior, scope, risk acceptance, or a choice among viable designs. Separate them cleanly from factual GAPs. The live one-question grilling protocol lives only in `{SKILL_DIR}/grilling/SKILL.md`; do not restate it here.
 
-The Decision Map must record at least: question or free-form change, selection/result, rationale, supporting evidence, affected sections, whether new research is needed, return stage/node, confirmer, and status. Any unconfirmed critical question blocks finalization.
+In Draft Review:
+
+1. present the review package and the critical backlog;
+2. hand the floor and wait — do not open the first `Q-*` as a popup in the same turn;
+3. follow the user's free-form concerns first;
+4. on user lead or explicit opt-in only, Read `{SKILL_DIR}/grilling/SKILL.md` and run that nested protocol;
+5. write every resolution and free-form change into the Decision Map;
+6. route to the earliest affected node, revise, re-gate, and re-enter Draft Review until the user confirms a candidate.
+
+The Decision Map must record at least: question or free-form change, selection/result, rationale, supporting evidence, affected sections, whether new research is needed, return stage/node, confirmer, and status. Unconfirmed critical questions that the user engaged block finalization. Unengaged backlog items stay listed as open context; they do not authorize agent-driven interrogation and do not alone unlock Final.
 
 ## Final Admission
 
 Generate the final document only when all conditions hold:
 
-- the user has seen the updated final candidate;
-- every critical user decision is confirmed and recorded in the Decision Map;
-- the user had an open-ended modification opportunity after the agent's questions;
-- user-requested changes are applied;
+- the user has seen the latest gated candidate and its change summary in Draft Review;
+- every user-engaged critical decision is confirmed, deferred as non-final, or superseded in the Decision Map;
+- free-form user changes from the latest review cycle are applied;
 - all `DIRTY` sections are cleared;
 - Draft Readiness remains valid, and Full Closure remains valid when the task required it;
 - every known material cross-project boundary is verified end to end or represented by an admitted non-critical GAP;
@@ -159,4 +167,4 @@ Generate the final document only when all conditions hold:
 - every `ADD` has insufficiency evidence;
 - critical GAPs/CONFLICTs are resolved or correctly block finalization;
 - deterministic validation and required semantic gate pass;
-- the user explicitly confirms the final candidate.
+- the user explicitly confirms that candidate as final.

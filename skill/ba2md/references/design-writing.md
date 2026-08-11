@@ -76,18 +76,18 @@ Stop the affected section and return to repair research when any load-bearing fa
 - either endpoint, ownership, contract, or compatibility of a material cross-project boundary;
 - completeness of an inventory that is required for this task's risk level.
 
-If bounded research converges without evidence, record a GAP. Non-critical GAPs may remain visible; critical GAPs block finalization. Never turn a factual gap into a user popup question.
+If bounded research converges without evidence, record a GAP. Non-critical GAPs may remain visible; critical GAPs block finalization. Never turn a factual gap into a user popup question. When drafting surfaces a user-decidable tradeoff, record it as a critical-backlog `Q-*` for Draft Review instead of interrupting writing with an interview.
 
 ## User Feedback and Rewriting
 
 Write every user decision or free-form change to the Decision Map and list affected sections. When evidence, decisions, or user feedback changes, mark every dependent section `DIRTY`.
 
-- No new facts needed: apply accumulated decisions after the current discussion cluster clears.
-- New facts needed: pause dependent questions and return to research immediately.
+- No new facts needed: apply accumulated decisions after the current user-led cluster clears, then rewrite.
+- New facts needed: pause dependent grilling and return to research immediately.
 - Requirement or project scope changed: return to Requirement Intake or Project Discovery.
 - Wording-only change: rewrite directly.
 
-After rewriting, clear valid dirty markers and rerun the appropriate gate level: mechanical, local semantic, or full semantic. Present a final candidate only after the required gate passes.
+After rewriting, clear valid dirty markers and rerun the appropriate gate level: mechanical, local semantic, or full semantic. Re-enter Draft Review with a change summary and an updated critical backlog. Present a final candidate only after the required gate passes; generate the final document only after explicit user confirmation.
 
 ## User-Visible Evidence
 

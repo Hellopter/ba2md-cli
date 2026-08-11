@@ -14,8 +14,10 @@ Use `{SKILL_DIR}` for this skill directory and `{WORKSPACE}` for the project roo
 | Type | Path | Purpose |
 |------|------|---------|
 | Requirement input | `{WORKSPACE}/requirements/*.md` | Read-only by default; supports explicit files, matching, and a flat directory queue |
-| Summary material | `{WORKSPACE}/wiki/` | Discovery, terminology, ownership, and scope positioning |
-| Fact material | `{WORKSPACE}/sources/` | Preferred fact root; fall back to `{WORKSPACE}/souces/` when needed |
+| Workspace registry | `{WORKSPACE}/workspace.yaml` | Authoritative managed ids for sources, wiki, and requirements |
+| Inventory command | `ba2md discover --json` (fallback: `ba2md status --json`) | Machine-readable managed entries and logical projects; run before content search |
+| Summary material | `{WORKSPACE}/wiki/<id>/` (logical projects may be nested one level) | Discovery, terminology, ownership, and scope positioning |
+| Fact material | `{WORKSPACE}/sources/<id>/` | Preferred fact roots; fall back to `{WORKSPACE}/souces/` only when `sources/` is absent |
 | Process artifact | `{WORKSPACE}/product/<slug>/research-plan.md` | Requirement state, selected pairs, research units, dirty sections, and gate state |
 | Process artifact | `{WORKSPACE}/product/<slug>/briefs/<unit-id>.md` | Initial or repair research brief when a brief is needed |
 | Process artifact | `{WORKSPACE}/product/<slug>/evidence-registry.md` | Evidence, claims, issues, decisions, and user-confirmed changes |
@@ -30,12 +32,13 @@ Load resources only when entering the corresponding node:
 
 - Requirement discovery, selection, and resume: `references/requirement-intake.md`
 - Project pairing: `references/project-discovery.md`
-- Nodes, transitions, repair research, and discussion: `references/execution-graph.md`
+- Nodes, transitions, repair research, and user-led Draft Review: `references/execution-graph.md`
 - Research plan, subagents, briefs, and acceptance: `references/research-protocol.md`
 - Evidence IDs, verification, quality gates, and final admission: `references/evidence-quality.md`
 - Writing inputs, stop conditions, and section depth: `references/design-writing.md`
 - Active template: `templates/sdd.md` and only the section constraints referenced by that active template
 - Process artifact templates: `assets/*.md`
+- Grilling (opt-in only, after Draft Review handoff): `grilling/SKILL.md` — loads `references/load-bearing.md`
 
 ## Evidence Vocabulary
 
@@ -69,9 +72,9 @@ Required back edges:
 - Quality Gate writing failure → Draft Writing.
 - Quality Gate conflict failure → Evidence Reconcile.
 - Quality Gate pairing failure → Project Discovery.
-- User decision or feedback → earliest affected node, then resume Draft Review.
+- User decision, concern, or grill resolution → earliest affected node → rewrite draft → Quality Gate → Draft Review again.
 
-A bounded GAP is a valid Draft result. Critical GAPs block Final, not transparent Draft writing.
+A bounded GAP is a valid Draft result. Critical GAPs block Final, not transparent Draft writing. Draft Review is a **revision loop**, not a one-shot questionnaire before Final.
 
 ## Node Workflow
 
@@ -85,7 +88,11 @@ Read the active `templates/sdd.md` directly. Treat the entire `templates/` direc
 
 ### 2. Discover Project Pairs
 
-Read `references/project-discovery.md`. Build a lightweight wiki/source index, then read entry material for plausible wiki projects, not every project by default. Expand discovery when ownership, upstream/downstream boundaries, data ownership, events, authorization, jobs, or operations dependencies remain unresolved.
+Read `references/project-discovery.md`. **Mandatory first action:** run `ba2md discover --json` when the CLI is available; otherwise read `workspace.yaml` and list one level of `sources/` and `wiki/`. Build the managed-entry inventory and expand nested wiki logical projects **before** any `grep`/`Glob`/content search.
+
+Never enumerate projects by searching `sources/**` or `wiki/**`, and never conclude “no wiki” from an empty `wiki/*.md` match when `wiki/<id>/` directories exist. Pair roots must be concrete paths such as `sources/<id>` or `wiki/<id>/<project>`, never bare `wiki/` or `sources/`.
+
+Build a lightweight wiki/source index from that inventory, then read entry material for plausible wiki projects, not every page by default. Every managed source id and every logical wiki project must appear in the Candidate Project Impact Map as `select` or `exclude` with a reason. Expand discovery when ownership, upstream/downstream boundaries, data ownership, events, authorization, jobs, or operations dependencies remain unresolved.
 
 Pair wiki and sources one-to-one. Select the smallest set that covers the requirement and known material boundaries. Ask the user only when requirement meaning or materially different project-pair choices genuinely block progress.
 
@@ -134,27 +141,32 @@ Run semantic review after a readable draft and evidence registry exist. One comp
 
 Rerun the appropriate gate after changes: mechanical validation for mechanical edits, local semantic review for wording or section-only edits, and full semantic gate for requirement scope, selected project pair, source evidence, API/schema/auth/data/event/rollback, critical GAP/CONFLICT, or final-candidate changes.
 
-### 7. Review the Draft with the User and Finalize
+### 7. Hand the Floor in Draft Review, Then Revise Until Confirmed
 
-After gating, enter Draft Review before finalization. Present the draft path, selected project pairs, recommended design direction, key evidence, key `REUSE/MODIFY/EXTEND/ADD` decisions, GAPs/CONFLICTs, gate result, and the agent's critical discussion questions.
+After gating, enter Draft Review. Read `references/execution-graph.md` for the full protocol. This node has two jobs: collect what the user cares about, and turn resolutions into a new draft — not interrogate the user into accepting the first draft.
 
-Treat this as collaborative design review, not a questionnaire. Discuss the user's requirements, the evidence found during research, and the key design tradeoffs discovered during drafting/gating.
+**Present the review package, then stop and wait.** Include:
 
-For each discussion round:
+- draft path and gate result;
+- selected project pairs and recommended design direction;
+- key evidence and key `REUSE/MODIFY/EXTEND/ADD` decisions;
+- GAPs/CONFLICTs and whether they block Final;
+- the **critical backlog**: agent-recorded load-bearing questions from drafting/gating, listed with short context only — not asked yet.
 
-- ask at most one critical decision question at a time;
-- offer two or three options when useful, with the recommended option first;
-- explain evidence, rationale, compatibility, migration, and risk impact;
-- explicitly invite the user to choose an option, revise the requirement, propose another design, change scope, request more research, or ask for wording changes;
-- never ask the user to guess implementation facts.
+After that package, **hand the floor to the user** and end the turn. Do not open a structured question popup, do not start grilling, and do not walk the backlog until the user leads.
 
-Do not treat the agent's question queue as exhaustive user feedback. After resolving critical questions, explicitly ask whether the user wants changes to requirement interpretation, scope, design choices, risk treatment, evidence presentation, or wording before preparing the final candidate.
+**User-led intake.** The user's concerns outrank the agent's backlog. Accept free-form reactions to the draft, requirement interpretation, scope, design direction, risk, evidence, or wording.
 
-Record every confirmed decision or free-form user change in the Decision Map, mark affected sections `DIRTY`, and route feedback to the earliest affected node. Present the updated final candidate with a change summary. Create the final `.md`, set `status: final`, and run final validation only after the user explicitly confirms that final candidate.
+When the user engages an item, challenges a choice, or asks to be grilled, **Read and follow** `{SKILL_DIR}/grilling/SKILL.md` (nested sub-skill; loads `references/load-bearing.md`). Do not load grilling on the handoff turn. Grilling captures decisions only; it does not rewrite the draft or finalize.
+
+After grilling returns — or after free-form feedback with no grill — write every resolution and free-form change to the Decision Map, mark affected sections `DIRTY`, and route to the earliest affected node. After research/reconcile/rewrite and the appropriate gate, return to Draft Review with a change summary and an updated critical backlog. Repeat this **revision loop** until the user explicitly accepts a candidate.
+
+Create `{slug}.md`, set `status: final`, and run final validation only after the user explicitly confirms that final candidate. Silence, “看起来还行”, or clearing the agent's backlog alone is not confirmation.
 
 ## Mandatory Rules
 
 - Treat `requirements/` as read-only by default. Index first, read full files on demand, and keep each queued requirement unit independent.
+- Start Project Discovery from `ba2md discover --json` / `workspace.yaml`; forbid using workspace-wide `sources/**` or `wiki/*` searches to decide project count or wiki presence.
 - Treat the active `templates/` directory as the sole document-structure authority; do not research, generate, or validate absent sections.
 - Use wiki for discovery and summary only; it cannot independently prove precise implementation.
 - Use only `VERIFIED` FACTs to describe precise current identifiers or behavior.
@@ -163,6 +175,8 @@ Record every confirmed decision or free-form user change in the Decision Map, ma
 - Prefer existing seams; every `ADD` needs existing-seam insufficiency evidence.
 - Verify both endpoints of material cross-project boundaries when they are known or suspected; record bounded GAPs when evidence cannot be found.
 - Do not create research units mechanically from template subsections.
-- Discuss critical user-decidable questions one at a time, then give the user an open-ended modification opportunity before finalization.
-- Block finalization on unresolved critical GAPs/CONFLICTs, unconfirmed critical decisions, uncleared `DIRTY` sections, gate failure, or missing explicit user confirmation.
+- In Draft Review, present the critical backlog and hand the floor; load `grilling/SKILL.md` only on user lead or explicit opt-in.
+- Prefer the user's concerns over the agent's question order; never ask the user to guess implementation facts.
+- Route every resolution through the Decision Map and the earliest affected node; re-enter Draft Review after each revision cycle.
+- Block finalization on unresolved critical GAPs/CONFLICTs, unconfirmed critical decisions the user engaged, uncleared `DIRTY` sections, gate failure, or missing explicit user confirmation of the final candidate.
 - Do not commit or push unless the user explicitly requests it.

@@ -17,8 +17,8 @@
 | Evidence ID | Label | Status | Pair ID | Claim | Source type | Exact anchor | Symbol | Supported sections | Verified by |
 |-------------|-------|--------|---------|-------|-------------|--------------|--------|--------------------|-------------|
 | R-<REQ>-001 | REQUIREMENT | VERIFIED/STALE/SUPERSEDED | - | | requirement | `requirements/...md:1-10` | | | |
-| F-<PAIR>-001 | FACT | FOUND/VERIFIED/REJECTED/STALE/SUPERSEDED | | | code/spec/standard/design/config/schema/deploy/alert | `sources/...:1-10` | | | |
-| S-<PAIR>-001 | SUMMARY | VERIFIED | | | wiki | `wiki/...` | | | |
+| F-<PAIR>-001 | FACT | FOUND/VERIFIED/REJECTED/STALE/SUPERSEDED | | | code/spec/standard/design/config/schema/deploy/alert | `sources/<source-id>/...:1-10` | | | |
+| S-<PAIR>-001 | SUMMARY | VERIFIED | | | wiki | `wiki/<wiki-id>/...` or `wiki/<wiki-id>/<project>/...` | | | |
 
 ## Design Claims
 
@@ -45,7 +45,7 @@
 
 | Decision ID | Question ID | Status | User choice or change | Recommended option | Decision rationale | Basis Evidence IDs | Affected sections | Needs new research | Return node | Confirmed by |
 |-------------|-------------|--------|-----------------------|--------------------|--------------------|--------------------|-------------------|--------------------|--------------|--------------|
-| D-<FEATURE>-001 | Q-<FEATURE>-001 | OPEN/ACCEPTED/SUPERSEDED | | | | | | Yes/No | Requirement Intake/Project Discovery/Research/Evidence Reconcile/Draft Writing | |
+| D-<FEATURE>-001 | Q-<FEATURE>-001 or FREEFORM | OPEN/ENGAGED/ACCEPTED/DEFERRED/SUPERSEDED | | | | | | Yes/No | Requirement Intake/Project Discovery/Research/Evidence Reconcile/Draft Writing | |
 
 ## Coverage Summary
 
