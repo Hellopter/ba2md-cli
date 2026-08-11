@@ -346,8 +346,8 @@ export async function collectDiscover(
 
   const guidance = [
     'Use this inventory before any workspace-wide content search.',
-    'Pair roots must be concrete paths such as sources/<id> or wiki/<id>[/<project>], never bare sources/ or wiki/.',
-    'Every managed source id and every logical wiki project must appear in the Candidate Project Impact Map as select or exclude.',
+    'Source and wiki roots must be concrete paths such as sources/<id> or wiki/<id>[/<project>], never bare sources/ or wiki/.',
+    'Every managed source id must appear in the Candidate Source Impact Map as select or exclude; reference every managed wiki id via a wiki/<id> path.',
     'Do not enumerate projects with grep/Glob on sources/** or wiki/*.',
   ];
 

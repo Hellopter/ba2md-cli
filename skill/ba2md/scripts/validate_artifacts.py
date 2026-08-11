@@ -273,12 +273,18 @@ def is_bare_collection_root(value):
 
 
 def managed_ids_mentioned(plan_text, selected_rows, impact_rows):
-    """Collect managed source/wiki ids referenced by concrete paths or pair ids."""
+    """Collect managed source/wiki ids referenced by concrete paths or source ids.
+
+    Source ids come from `sources/<id>` paths and the Source ID column; wiki ids come
+    from `wiki/<id>` paths. A Source ID names a managed source project only — it does
+    NOT imply a wiki entry exists for it. Wiki and sources are independent collections,
+    so a source id is never also treated as a wiki id.
+    """
     source_ids = set()
     wiki_ids = set()
     blobs = [plan_text]
     for row in selected_rows:
-        blobs.extend([row.get("wiki", ""), row.get("sources", ""), row.get("pair_id", "")])
+        blobs.extend([row.get("wiki", ""), row.get("sources", ""), row.get("source_id", "")])
     for row in impact_rows:
         blobs.extend(row.values())
     joined = "\n".join(blobs)
@@ -286,12 +292,11 @@ def managed_ids_mentioned(plan_text, selected_rows, impact_rows):
         source_ids.add(match.group(2))
     for match in MANAGED_WIKI_PATH_RE.finditer(joined):
         wiki_ids.add(match.group(2))
-    # Pair IDs often equal managed ids.
+    # A Source ID names a managed source project; it is not also a wiki id.
     for row in list(selected_rows) + list(impact_rows):
-        pair_id = (row.get("pair_id") or "").strip().strip("`")
-        if pair_id:
-            source_ids.add(pair_id)
-            wiki_ids.add(pair_id)
+        source_id = (row.get("source_id") or "").strip().strip("`")
+        if source_id:
+            source_ids.add(source_id)
     return source_ids, wiki_ids
 
 
@@ -302,82 +307,90 @@ def validate_plan(product_dir, workspace, errors):
         return
     plan_text = path.read_text(encoding="utf-8")
     tables = parse_tables(plan_text)
-    pairs = find_table(tables, {
-        "pair_id": ("Pair ID",),
-        "wiki": ("Wiki root",),
+    sources = find_table(tables, {
+        "source_id": ("Source ID",),
         "sources": ("Sources root",),
+        "wiki": ("Wiki coverage",),
     })
     impact_rows = find_table(tables, {
-        "pair_id": ("Pair ID",),
+        "source_id": ("Source ID",),
         "decision": ("Decision",),
         "reason": ("Exclusion reason",),
     })
     coverage_rows = find_table(tables, {
         "requirement_id": ("Requirement ID",),
-        "owning_pair": ("Owning pair",),
+        "owning_source": ("Owning source",),
         "status": ("Status",),
     })
     boundary_rows = find_table(tables, {
         "boundary_id": ("Boundary ID",),
-        "left_pair": ("Caller/producer pair",),
-        "right_pair": ("Provider/consumer pair",),
+        "left_source": ("Caller/producer source",),
+        "right_source": ("Provider/consumer source",),
         "status": ("Status",),
     })
 
-    if pairs is None:
-        errors.append("research-plan.md is missing the Selected Project Pairs table")
-        pairs = []
+    if sources is None:
+        errors.append("research-plan.md is missing the Selected Sources table")
+        sources = []
     if impact_rows is None:
-        errors.append("research-plan.md is missing the Candidate Project Impact Map table")
+        errors.append("research-plan.md is missing the Candidate Source Impact Map table")
         impact_rows = []
     if coverage_rows is None:
-        errors.append("research-plan.md is missing the Requirement-to-Project Coverage table")
+        errors.append("research-plan.md is missing the Requirement-to-Source Coverage table")
         coverage_rows = []
     if boundary_rows is None:
-        errors.append("research-plan.md is missing the Cross-Project Boundary Coverage table")
+        errors.append("research-plan.md is missing the Cross-Source Boundary Coverage table")
         boundary_rows = []
 
-    selected_pairs = set()
-    for row in pairs:
-        pair_id = row["pair_id"].strip().strip("`")
-        if not nonempty(pair_id):
+    selected_sources = set()
+    for row in sources:
+        source_id = row["source_id"].strip().strip("`")
+        if not nonempty(source_id):
             continue
-        if pair_id in selected_pairs:
-            errors.append(f"duplicate selected project pair: {pair_id}")
+        if source_id in selected_sources:
+            errors.append(f"duplicate selected source: {source_id}")
             continue
-        selected_pairs.add(pair_id)
-        for label, value in (("Wiki root", row["wiki"]), ("Sources root", row["sources"])):
-            rel = value.strip().strip("`")
-            if is_bare_collection_root(rel):
-                errors.append(
-                    f"project pair {pair_id} uses bare collection root as {label}: {rel} "
-                    f"(use sources/<id> or wiki/<id>[/<project>])"
-                )
-                continue
+        selected_sources.add(source_id)
+        # Sources root is mandatory: must not be a bare collection root and must exist.
+        rel = row["sources"].strip().strip("`")
+        if is_bare_collection_root(rel):
+            errors.append(
+                f"source {source_id} uses bare collection root as Sources root: {rel} "
+                f"(use sources/<id>)"
+            )
+        else:
             path_value = Path(rel)
             if not path_value.is_absolute():
                 path_value = workspace / path_value
             if not path_value.exists():
-                errors.append(f"project pair {pair_id} has a missing {label}: {rel}")
-    if not selected_pairs:
-        errors.append("research-plan.md has no selected project pairs")
+                errors.append(f"source {source_id} has a missing Sources root: {rel}")
+        # Wiki coverage is optional discovery context: only the bare-root guard runs,
+        # and only when a value is present. A source may have no wiki coverage.
+        wiki_rel = row["wiki"].strip().strip("`")
+        if nonempty(wiki_rel) and is_bare_collection_root(wiki_rel):
+            errors.append(
+                f"source {source_id} uses bare collection root as Wiki coverage: {wiki_rel} "
+                f"(use wiki/<id>[/<project>])"
+            )
+    if not selected_sources:
+        errors.append("research-plan.md has no selected sources")
 
-    impact_pairs = set()
+    impact_sources = set()
     for row in impact_rows:
-        pair_id = row["pair_id"].strip().strip("`")
-        if not nonempty(pair_id):
+        source_id = row["source_id"].strip().strip("`")
+        if not nonempty(source_id):
             continue
-        if pair_id in impact_pairs:
-            errors.append(f"duplicate candidate-impact pair: {pair_id}")
+        if source_id in impact_sources:
+            errors.append(f"duplicate candidate-impact source: {source_id}")
             continue
-        impact_pairs.add(pair_id)
+        impact_sources.add(source_id)
         decision = row["decision"].strip().upper()
         if decision not in {"SELECT", "EXCLUDE"}:
-            errors.append(f"candidate-impact pair {pair_id} has invalid Decision: {row['decision']}")
+            errors.append(f"candidate-impact source {source_id} has invalid Decision: {row['decision']}")
         if decision == "EXCLUDE" and not nonempty(row["reason"]):
-            errors.append(f"excluded candidate-impact pair {pair_id} is missing an exclusion reason")
-    for pair_id in sorted(selected_pairs - impact_pairs):
-        errors.append(f"selected project pair {pair_id} is missing from the Candidate Project Impact Map")
+            errors.append(f"excluded candidate-impact source {source_id} is missing an exclusion reason")
+    for source_id in sorted(selected_sources - impact_sources):
+        errors.append(f"selected source {source_id} is missing from the Candidate Source Impact Map")
 
     covered_requirements = 0
     for row in coverage_rows:
@@ -387,15 +400,15 @@ def validate_plan(product_dir, workspace, errors):
         covered_requirements += 1
         if not ID_RE.fullmatch(requirement_id) or not requirement_id.startswith("R-"):
             errors.append(f"invalid requirement coverage ID: {requirement_id}")
-        owning_pair = row["owning_pair"].strip().strip("`")
-        if not nonempty(owning_pair):
-            errors.append(f"requirement coverage {requirement_id} is missing an owning pair")
-        elif owning_pair not in selected_pairs:
-            errors.append(f"requirement coverage {requirement_id} references an unselected owning pair: {owning_pair}")
+        owning_source = row["owning_source"].strip().strip("`")
+        if not nonempty(owning_source):
+            errors.append(f"requirement coverage {requirement_id} is missing an owning source")
+        elif owning_source not in selected_sources:
+            errors.append(f"requirement coverage {requirement_id} references an unselected owning source: {owning_source}")
         if not nonempty(row["status"]):
             errors.append(f"requirement coverage {requirement_id} is missing Status")
     if not covered_requirements:
-        errors.append("research-plan.md has no requirement-to-project coverage rows")
+        errors.append("research-plan.md has no requirement-to-source coverage rows")
 
     seen_boundaries = set()
     for row in boundary_rows:
@@ -403,42 +416,37 @@ def validate_plan(product_dir, workspace, errors):
         if not nonempty(boundary_id):
             continue
         if boundary_id in seen_boundaries:
-            errors.append(f"duplicate cross-project boundary: {boundary_id}")
+            errors.append(f"duplicate cross-source boundary: {boundary_id}")
             continue
         seen_boundaries.add(boundary_id)
-        for endpoint, pair_id in (("caller/producer", row["left_pair"]), ("provider/consumer", row["right_pair"])):
-            pair_id = pair_id.strip().strip("`")
-            if not nonempty(pair_id):
-                errors.append(f"cross-project boundary {boundary_id} is missing the {endpoint} pair")
-            elif pair_id not in selected_pairs:
-                errors.append(f"cross-project boundary {boundary_id} references an unselected {endpoint} pair: {pair_id}")
+        for endpoint, source_id in (("caller/producer", row["left_source"]), ("provider/consumer", row["right_source"])):
+            source_id = source_id.strip().strip("`")
+            if not nonempty(source_id):
+                errors.append(f"cross-source boundary {boundary_id} is missing the {endpoint} source")
+            elif source_id not in selected_sources:
+                errors.append(f"cross-source boundary {boundary_id} references an unselected {endpoint} source: {source_id}")
         if not nonempty(row["status"]):
-            errors.append(f"cross-project boundary {boundary_id} is missing Status")
+            errors.append(f"cross-source boundary {boundary_id} is missing Status")
 
-    # Registry coverage: every managed source/wiki id must appear in the plan inventory.
+    # Registry coverage: every managed source id must be explicitly selected or excluded
+    # in the Candidate Source Impact Map; every managed wiki id must be referenced by a
+    # wiki/<id> path somewhere in the plan (wiki is discovery context, independent of any
+    # source). This universal rule replaces the old multi-source/one-pair special case.
     registry = load_workspace_registry(workspace)
     if registry["present"]:
-        mentioned_sources, mentioned_wiki = managed_ids_mentioned(plan_text, pairs, impact_rows)
+        _, mentioned_wiki = managed_ids_mentioned(plan_text, sources, impact_rows)
         for source_id in registry["sources"]:
-            if source_id not in mentioned_sources and f"sources/{source_id}" not in plan_text and f"souces/{source_id}" not in plan_text:
+            if source_id not in impact_sources:
                 errors.append(
                     f"workspace.yaml source \"{source_id}\" is not covered in research-plan.md "
-                    f"(reference sources/{source_id} or include it as select/exclude in the Candidate Project Impact Map)"
+                    f"(include it as SELECT or EXCLUDE with a reason in the Candidate Source Impact Map)"
                 )
         for wiki_id in registry["wiki"]:
             if wiki_id not in mentioned_wiki and f"wiki/{wiki_id}" not in plan_text:
                 errors.append(
                     f"workspace.yaml wiki \"{wiki_id}\" is not covered in research-plan.md "
-                    f"(reference wiki/{wiki_id} or include it as select/exclude in the Candidate Project Impact Map)"
+                    f"(reference wiki/{wiki_id} in the plan, e.g. as Wiki coverage for a selected source)"
                 )
-        if len(registry["sources"]) > 1 and len(selected_pairs) == 1:
-            # Soft structural warning path is not available; require impact map to mention all source ids.
-            for source_id in registry["sources"]:
-                if source_id not in impact_pairs and source_id not in mentioned_sources:
-                    errors.append(
-                        f"multi-source workspace: source \"{source_id}\" must appear in the Candidate Project Impact Map "
-                        f"when only one pair is selected"
-                    )
 
 
 def validate_briefs(product_dir, workspace, errors, warnings):

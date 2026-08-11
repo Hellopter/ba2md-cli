@@ -6,19 +6,21 @@
 |----------------|-----------------|------|---------|--------|-----------------|
 | RQ-<REQ>-001 | Main | `requirements/...md` | | ACTIVE/STALE/SUPERSEDED | |
 
-## Project Pairing
+## Selected Sources
 
-| Pair ID | Wiki root | Sources root | Roles | Pairing basis | Responsibility scope | Impact status |
-|---------|-----------|--------------|-------|---------------|----------------------|---------------|
-| | | | | | | SELECTED/EXCLUDED |
+| Source ID | Sources root | Wiki coverage | Roles | Selection basis | Responsibility scope | Impact status |
+|-----------|--------------|---------------|-------|-----------------|----------------------|---------------|
+| | `sources/<id>` | `wiki/<id>` (optional) | | | | SELECTED/EXCLUDED |
 
 ## Evidence Records
 
-| Evidence ID | Label | Status | Pair ID | Claim | Source type | Exact anchor | Symbol | Supported sections | Verified by |
-|-------------|-------|--------|---------|-------|-------------|--------------|--------|--------------------|-------------|
+> Scope ID = the source id for FACT records (`F-<SOURCE>-NNN`) or the wiki id for SUMMARY records (`S-<WIKI>-NNN`). Sources own facts; wiki owns summaries.
+
+| Evidence ID | Label | Status | Scope ID | Claim | Source type | Exact anchor | Symbol | Supported sections | Verified by |
+|-------------|-------|--------|----------|-------|-------------|--------------|--------|--------------------|-------------|
 | R-<REQ>-001 | REQUIREMENT | VERIFIED/STALE/SUPERSEDED | - | | requirement | `requirements/...md:1-10` | | | |
-| F-<PAIR>-001 | FACT | FOUND/VERIFIED/REJECTED/STALE/SUPERSEDED | | | code/spec/standard/design/config/schema/deploy/alert | `sources/<source-id>/...:1-10` | | | |
-| S-<PAIR>-001 | SUMMARY | VERIFIED | | | wiki | `wiki/<wiki-id>/...` or `wiki/<wiki-id>/<project>/...` | | | |
+| F-<SOURCE>-001 | FACT | FOUND/VERIFIED/REJECTED/STALE/SUPERSEDED | | | code/spec/standard/design/config/schema/deploy/alert | `sources/<source-id>/...:1-10` | | | |
+| S-<WIKI>-001 | SUMMARY | VERIFIED | | | wiki | `wiki/<wiki-id>/...` or `wiki/<wiki-id>/<project>/...` | | | |
 
 ## Design Claims
 
@@ -51,10 +53,10 @@
 
 | Metric | Result |
 |--------|--------|
-| Selected project pairs | |
+| Selected sources | |
 | Draft Readiness passed | |
 | Full Closure required / passed | |
-| Known cross-project boundaries verified/GAPed | |
+| Known cross-source boundaries verified/GAPed | |
 | Accepted research briefs | |
 | VERIFIED FACTs | |
 | PROPOSALs / DECISIONs | |

@@ -11,7 +11,7 @@
 
 | Finding ID | Type | Severity | Problem | Basis | Affected sections | Needs user | Recommended return node | Status |
 |------------|------|----------|---------|-------|-------------------|------------|-------------------------|--------|
-| GF-001 | MECHANICAL/WRITING/EVIDENCE/CONFLICT/PAIRING/DECISION/CRITICAL_GAP | Critical/High/Medium/Low | | | | Yes/No | | OPEN/RESOLVED |
+| GF-001 | MECHANICAL/WRITING/EVIDENCE/CONFLICT/SCOPING/DECISION/CRITICAL_GAP | Critical/High/Medium/Low | | | | Yes/No | | OPEN/RESOLVED |
 
 ## Supplemental Deterministic Validation
 
@@ -54,7 +54,7 @@
 | Metric | Result |
 |--------|--------|
 | Requirement anchors recorded | |
-| Project pairing justified | |
+| Source selection justified | |
 | Draft Readiness passed | |
 | Full Closure required | Yes/No |
 | Full Closure passed, if required | |
@@ -62,8 +62,8 @@
 | Inventory coverage appropriate to risk | |
 | Inventory-to-draft traceability | |
 | Irrelevant sections not populated | |
-| Requirement-to-project coverage | |
-| Known cross-project boundaries verified/GAPed | |
+| Requirement-to-source coverage | |
+| Known cross-source boundaries verified/GAPed | |
 | Strong exclusions justified, if applicable | |
 | Accepted research briefs | |
 | VERIFIED FACTs | |

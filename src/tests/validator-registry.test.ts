@@ -27,59 +27,54 @@ function runValidator(workspace: string, productDir: string): {
 }
 
 function planTables(options: {
-  pairs: Array<{ id: string; wiki: string; sources: string }>;
+  sources: Array<{ id: string; sources: string; wiki?: string }>;
   impact: Array<{ id: string; decision: string; reason: string }>;
 }): string {
-  const pairRows = options.pairs
-    .map((p) => `| ${p.id} | ${p.wiki} | ${p.sources} | owner | name |`)
+  const sourceRows = options.sources
+    .map((s) => `| ${s.id} | ${s.sources} | ${s.wiki ?? ''} | owner | basis |`)
     .join('\n');
   const impactRows = options.impact
-    .map((p) => `| ${p.id} | owner | signal | basis | impact | ${p.decision} | ${p.reason} |`)
+    .map((s) => `| ${s.id} | owner | signal | basis | impact | ${s.decision} | ${s.reason} |`)
     .join('\n');
+  const owning = options.sources[0]?.id ?? 'svc-a';
   return `# Research Plan
 
-## Selected Project Pairs
-| Pair ID | Wiki root | Sources root | Role in requirement | Pair proof |
-|---------|-----------|--------------|---------------------|------------|
-${pairRows}
+## Selected Sources
+| Source ID | Sources root | Wiki coverage | Role in requirement | Selection basis |
+|-----------|--------------|---------------|---------------------|-----------------|
+${sourceRows}
 
-## Candidate Project Impact Map
-| Pair ID | Role | Requirement signals | Wiki/source basis | Expected impact | Decision | Exclusion reason |
-|---------|------|---------------------|-------------------|-----------------|----------|------------------|
+## Candidate Source Impact Map
+| Source ID | Role | Requirement signals | Wiki/source basis | Expected impact | Decision | Exclusion reason |
+|-----------|------|---------------------|-------------------|-----------------|----------|------------------|
 ${impactRows}
 
-## Requirement-to-Project Coverage
-| Requirement ID | Owning pair | Supporting pairs | Status | Notes |
-|----------------|-------------|------------------|--------|-------|
-| R-FEAT-001 | ${options.pairs[0]?.id ?? 'p1'} | | covered | |
+## Requirement-to-Source Coverage
+| Requirement ID | Owning source | Supporting sources | Status | Notes |
+|----------------|---------------|--------------------|--------|-------|
+| R-FEAT-001 | ${owning} | | covered | |
 
-## Cross-Project Boundary Coverage
-| Boundary ID | Caller/producer pair | Provider/consumer pair | Boundary | Status | Evidence/GAP |
-|-------------|----------------------|------------------------|----------|--------|--------------|
+## Cross-Source Boundary Coverage
+| Boundary ID | Caller/producer source | Provider/consumer source | Boundary | Status | Evidence/GAP |
+|-------------|------------------------|--------------------------|----------|--------|--------------|
 `;
 }
 
 describe('validate_artifacts registry coverage', () => {
-  it('rejects bare wiki/ and sources/ pair roots', async () => {
+  it('rejects a bare sources/ root', async () => {
     const cwd = await makeTempDir();
     const { root } = await initWorkspace('ws', cwd);
     const sourceDir = path.join(cwd, 'svc');
-    const wikiDir = path.join(cwd, 'wiki-src');
     await fsp.mkdir(sourceDir);
-    await fsp.mkdir(wikiDir);
     await writeFile(path.join(sourceDir, 'a.txt'), 'a\n');
-    await writeFile(path.join(wikiDir, 'README.md'), '# w\n');
     await addSource(root, sourceDir, { id: 'svc' });
-    await addWiki(root, wikiDir, { id: 'docs' });
 
-    // Create real paths so existence checks pass if bare-root check fails first...
-    // Bare roots wiki/ and sources/ exist as directories.
     const productDir = path.join(root, 'product', 'demo-sdd');
     await fsp.mkdir(productDir, { recursive: true });
     await writeFile(
       path.join(productDir, 'research-plan.md'),
       planTables({
-        pairs: [{ id: 'svc', wiki: 'wiki/', sources: 'sources/' }],
+        sources: [{ id: 'svc', sources: 'sources/' }],
         impact: [{ id: 'svc', decision: 'SELECT', reason: '-' }],
       }),
     );
@@ -110,7 +105,7 @@ describe('validate_artifacts registry coverage', () => {
     await writeFile(
       path.join(productDir, 'research-plan.md'),
       planTables({
-        pairs: [{ id: 'svc-a', wiki: 'wiki/docs', sources: 'sources/svc-a' }],
+        sources: [{ id: 'svc-a', sources: 'sources/svc-a', wiki: 'wiki/docs' }],
         impact: [{ id: 'svc-a', decision: 'SELECT', reason: '-' }],
       }),
     );
@@ -120,7 +115,7 @@ describe('validate_artifacts registry coverage', () => {
     assert.match(result.stdout, /svc-b/);
   });
 
-  it('passes when every managed id is selected or excluded', async () => {
+  it('passes when every managed source is selected or excluded and the wiki is referenced', async () => {
     const cwd = await makeTempDir();
     const { root } = await initWorkspace('ws', cwd);
     const a = path.join(cwd, 'a');
@@ -141,11 +136,10 @@ describe('validate_artifacts registry coverage', () => {
     await writeFile(
       path.join(productDir, 'research-plan.md'),
       planTables({
-        pairs: [{ id: 'svc-a', wiki: 'wiki/docs', sources: 'sources/svc-a' }],
+        sources: [{ id: 'svc-a', sources: 'sources/svc-a', wiki: 'wiki/docs' }],
         impact: [
           { id: 'svc-a', decision: 'SELECT', reason: '-' },
           { id: 'svc-b', decision: 'EXCLUDE', reason: 'not in requirement path' },
-          { id: 'docs', decision: 'SELECT', reason: '-' },
         ],
       }),
     );

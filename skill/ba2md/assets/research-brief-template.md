@@ -6,10 +6,10 @@
 - Requirement files and R-* anchors:
 - Source stage:
 - Failed gate, if any:
-- Pair ID:
+- Source ID:
 - Project role:
-- Boundary ID and peer pair, if applicable:
-- Wiki root:
+- Boundary ID and peer source, if applicable:
+- Wiki pages (optional):
 - Sources root:
 - Related template sections and constraint files:
 - Template relevance: RELEVANT / UNKNOWN
@@ -32,7 +32,7 @@
 
 | Candidate ID | Claim | Wiki path | Relevance |
 |--------------|-------|-----------|-----------|
-| S-<PAIR>-001 | | | |
+| S-<WIKI>-001 | | | |
 
 ## Evidence Candidates
 
@@ -40,11 +40,11 @@
 
 | Candidate ID | Label | Status | Source type | Claim | Exact raw anchor | Symbol | Supported sections |
 |--------------|-------|--------|-------------|-------|------------------|--------|--------------------|
-| F-<PAIR>-001 | FACT | FOUND | code/spec/standard/design/config/schema/deploy/alert | | `sources/<source-id>/...:1-10` | | |
+| F-<SOURCE>-001 | FACT | FOUND | code/spec/standard/design/config/schema/deploy/alert | | `sources/<source-id>/...:1-10` | | |
 
 ## Implementation Inventory Results
 
-| Item ID | Type | Pair ID | Existing identifier | Requirement relevance | Evidence candidate | Draft section | Status / exclusion reason |
+| Item ID | Type | Source ID | Existing identifier | Requirement relevance | Evidence candidate | Draft section | Status / exclusion reason |
 |---------|------|---------|---------------------|-----------------------|--------------------|---------------|---------------------------|
 | | API/INTERNAL_INTERFACE/EVENT/ENTITY/JOB/PERMISSION/CONFIG/METRIC/ALERT/OTHER | | | | | | IN_SCOPE/EXCLUDED/GAP |
 
@@ -72,9 +72,9 @@
 
 ### Observability, Alerts, Audit, and Deployment
 
-## Cross-Project Boundary, if applicable
+## Cross-Source Boundary, if applicable
 
-| Endpoint | Pair ID | Direction / ownership | Current contract or behavior | Evidence candidate | Compatibility / failure responsibility |
+| Endpoint | Source ID | Direction / ownership | Current contract or behavior | Evidence candidate | Compatibility / failure responsibility |
 |----------|---------|-----------------------|------------------------------|--------------------|----------------------------------------|
 | Caller / producer / writer | | | | | |
 | Provider / consumer / data owner | | | | | |
@@ -105,10 +105,10 @@
 - Rejected evidence IDs and reasons:
 - Evidence promoted to VERIFIED:
 - GAPs / CONFLICTs recorded:
-- Newly discovered pairs or boundaries:
+- Newly discovered sources or boundaries:
 - Active template / section-constraint updates:
 - Implementation Inventory updates, at the task risk level:
-- Pairing, impact, and boundary updates:
+- Selection, impact, and boundary updates:
 - Follow-up or repair research units:
 - Evidence-registry updates:
 - Dirty sections:

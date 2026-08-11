@@ -5,8 +5,8 @@
 | Node | Required input | Done when | Legal next nodes |
 |------|----------------|-----------|------------------|
 | Requirement Intake | User request, `requirements/`, active template folder | Requirement unit selected; path/hash/anchors recorded; goals, scope, constraints, acceptance, and non-goals captured; active template loaded | Project Discovery, User Decision |
-| Project Discovery | Requirement interpretation | Minimal plausible wiki↔sources pair set selected; known material boundaries recorded or GAPed | Research Plan, User Decision |
-| Research Plan | Selected pairs and initial anchors | Units, dependencies, expected facts, graph state, and readiness level written | Research, Project Discovery |
+| Project Discovery | Requirement interpretation | Relevant sources selected from wiki discovery; known material boundaries recorded or GAPed | Research Plan, User Decision |
+| Research Plan | Selected sources and initial anchors | Units, dependencies, expected facts, graph state, and readiness level written | Research, Project Discovery |
 | Research | One bounded unit | Brief or direct notes produced with evidence candidates or bounded negative result | Brief Acceptance |
 | Brief Acceptance | Brief/direct notes + raw artifacts | Load-bearing candidates verified/rejected; registry and affected sections updated | Research, Evidence Reconcile, Project Discovery |
 | Evidence Reconcile | VERIFIED evidence and issues | Current-to-target decisions, alternatives, assumptions, conflicts, and GAPs recorded | Draft Writing, Research, User Decision |
@@ -56,7 +56,7 @@ Use when evidence exists but authorities conflict, a change type is unjustified,
 
 ### Quality Gate → Project Discovery
 
-Use when evidence belongs to the wrong project pair, the owner project was omitted, pair proof is invalid, or a new material boundary appears.
+Use when evidence belongs to the wrong source, the owner source was omitted, selection basis is invalid, or a new material boundary appears.
 
 ### Any Node → User Decision
 
@@ -66,7 +66,7 @@ Use only for genuinely user-decidable product/business choices, requirement ambi
 
 Name repair units `repair-<trigger>-<short-name>`, for example `repair-writing-rate-limit` or `repair-gate-api-path`.
 
-A missing-fact cluster gets one initial research pass and, by default, one Repair Research pass. Permit another repair only when the previous pass reveals a new concrete search hypothesis: path, symbol, artifact type, source type, owner, project pair, boundary, or user-provided corpus.
+A missing-fact cluster gets one initial research pass and, by default, one Repair Research pass. Permit another repair only when the previous pass reveals a new concrete search hypothesis: path, symbol, artifact type, source type, owner, source project, boundary, or user-provided corpus.
 
 A complete inventory plus bounded literal/symbol searches that find no artifact is a valid negative result. Accept it as GAP instead of repeatedly delegating the same question. Critical GAP blocks Final, not Draft.
 
@@ -102,7 +102,7 @@ Do not patch only the visible sentence if downstream design, tests, rollout, per
 | `WRITING` | Evidence is sufficient; wording or section coverage is wrong | Draft Writing |
 | `EVIDENCE` | Missing, wrong, stale, or unverified raw fact | Repair Research |
 | `CONFLICT` | Authorities disagree or decision is unresolved | Evidence Reconcile; research first if facts are missing |
-| `PAIRING` | Wrong or incomplete wiki↔sources ownership | Project Discovery |
+| `SCOPING` | Wrong or incomplete source selection or ownership | Project Discovery |
 | `DECISION` | Product/business/scope choice required | Draft Review (record on critical backlog; wait for user lead) |
 | `CRITICAL_GAP` | Implementation cannot be responsibly finalized | Research only with a new search hypothesis; otherwise keep Draft and block Final |
 
@@ -114,7 +114,7 @@ Use the lightest gate that preserves integrity:
 
 - **Mechanical validation** for formatting, IDs, placeholders, status, and anchor existence.
 - **Local semantic review** for wording-only edits, table reshaping, section-local clarification, or non-load-bearing prose.
-- **Full semantic gate** for requirement scope, selected project pair, source evidence, API/schema/auth/data/event/rollback, critical GAP/CONFLICT, existing-seam `ADD` proof, or final-candidate changes.
+- **Full semantic gate** for requirement scope, selected source(s), source evidence, API/schema/auth/data/event/rollback, critical GAP/CONFLICT, existing-seam `ADD` proof, or final-candidate changes.
 
 Always run full semantic gate before presenting a final candidate.
 
@@ -127,7 +127,7 @@ After a readable draft and gate report exist, enter Draft Review as a **user-led
 Present all of the following in one handoff, then end the turn:
 
 - draft path and status;
-- selected project pairs and why;
+- selected sources and why;
 - recommended design direction;
 - key evidence and source quality;
 - key `REUSE/MODIFY/EXTEND/ADD` decisions;
@@ -160,7 +160,7 @@ Route feedback as follows:
 | Feedback | Return node |
 |----------|-------------|
 | New or changed requirement file content, objective, acceptance criteria, or scope | Requirement Intake |
-| New owning project or changed project ownership | Project Discovery |
+| New owning source or changed source ownership | Project Discovery |
 | New source material, factual correction, or choice requiring new facts | Research / Brief Acceptance |
 | Selection among already researched alternatives | Evidence Reconcile, then Draft Writing |
 | Wording, table, or diagram change only | Draft Writing |
@@ -196,4 +196,4 @@ Silence, vague assent, or “the backlog is empty” is not confirmation. Genera
 
 ## Parallelism
 
-The main agent owns discovery, acceptance, reconciliation, writing, routing, and user discussion. Delegate independent research units with disjoint project-pair/concern scopes. Cap parallel subagents at four unless explicitly justified. Do not ask subagents to edit the final SDD.
+The main agent owns discovery, acceptance, reconciliation, writing, routing, and user discussion. Delegate independent research units with disjoint source/concern scopes. Cap parallel subagents at four unless explicitly justified. Do not ask subagents to edit the final SDD.

@@ -9,7 +9,7 @@ The template tells you what the document may contain; it does not prove that fac
 Before starting or resuming writing, confirm that:
 
 - requirement interpretation is captured from VERIFIED REQUIREMENT records;
-- selected project pairs and known material boundaries are recorded;
+- selected sources and known material boundaries are recorded;
 - Draft Readiness has passed, or Full Closure has passed when the task requires it;
 - required research units are accepted or explicit GAPs are recorded;
 - `evidence-registry.md` is current;
@@ -73,7 +73,7 @@ Stop the affected section and return to repair research when any load-bearing fa
 - table, index, transaction, migration, or rollback behavior;
 - authorization, tenancy, rate limit, timeout, retry, alert, audit, or deployment mechanism;
 - existence or sufficiency of an extension seam;
-- either endpoint, ownership, contract, or compatibility of a material cross-project boundary;
+- either endpoint, ownership, contract, or compatibility of a material cross-source boundary;
 - completeness of an inventory that is required for this task's risk level.
 
 If bounded research converges without evidence, record a GAP. Non-critical GAPs may remain visible; critical GAPs block finalization. Never turn a factual gap into a user popup question. When drafting surfaces a user-decidable tradeoff, record it as a critical-backlog `Q-*` for Draft Review instead of interrupting writing with an interview.
@@ -91,4 +91,4 @@ After rewriting, clear valid dirty markers and rerun the appropriate gate level:
 
 ## User-Visible Evidence
 
-Place evidence or claim IDs next to load-bearing statements and table rows. The document's evidence section should show project pairs, key raw anchors, design decisions, conflicts, assumptions, and GAPs so users can judge credibility directly. Do not replace this with an opaque confidence score.
+Place evidence or claim IDs next to load-bearing statements and table rows. The document's evidence section should show selected sources, key raw anchors, design decisions, conflicts, assumptions, and GAPs so users can judge credibility directly. Do not replace this with an opaque confidence score.

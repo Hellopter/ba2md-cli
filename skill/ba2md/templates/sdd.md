@@ -107,7 +107,7 @@ requirement_ref: <optional>
 
 # 5. References and Terminology
 
-## 5.1 Project Pairing
+## 5.1 Selected Sources
 
 ## 5.2 Evidence Quality Summary
 

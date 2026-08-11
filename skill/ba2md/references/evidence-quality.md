@@ -28,8 +28,8 @@ Use `evidence-registry.md` as the sole registry of evidence, issues, design clai
 Use these IDs:
 
 - `R-<REQ>-NNN`: REQUIREMENT
-- `F-<PAIR>-NNN`: FACT
-- `S-<PAIR>-NNN`: SUMMARY
+- `F-<SOURCE>-NNN`: FACT
+- `S-<WIKI>-NNN`: SUMMARY
 - `P-<FEATURE>-NNN`: PROPOSAL
 - `D-<FEATURE>-NNN`: DECISION
 - `A-<FEATURE>-NNN`: ASSUMPTION
@@ -80,18 +80,18 @@ Do not use Java test sources as current-system evidence.
 
 ## Multi-Project Evidence Closure
 
-For a multi-project requirement, correctness is not the sum of isolated project findings. Verify the end-to-end graph:
+For a multi-source requirement, correctness is not the sum of isolated source findings. Verify the end-to-end graph:
 
-- map every requirement item to one owning pair and any dependent pairs;
+- map every requirement item to one owning source and any dependent sources;
 - verify both endpoints of caller/provider, producer/consumer, and writer/data-owner boundaries;
 - reconcile request/response fields, event payloads, error semantics, timeouts, retries, idempotency, and version compatibility across endpoints;
 - identify the actual data owner for every changed persisted domain;
 - identify relevant consumers for every changed event or shared contract;
 - record authorization, tenancy, configuration, deployment, alerting, and audit ownership where relevant;
-- return to project discovery when source evidence reveals an unaccounted project, boundary, or owner;
-- record compatibility evidence for a strongly related project that is excluded from the impact set.
+- return to project discovery when source evidence reveals an unaccounted source, boundary, or owner;
+- record compatibility evidence for a strongly related source that is excluded from the impact set.
 
-Do not mark the impact set closed merely because each selected project was researched independently. It is closed only when requirement coverage and material cross-project edges are explained end to end or represented by explicit GAP/CONFLICT records.
+Do not mark the impact set closed merely because each selected source was researched independently. It is closed only when requirement coverage and material cross-source edges are explained end to end or represented by explicit GAP/CONFLICT records.
 
 ## Gate Findings
 
@@ -114,8 +114,8 @@ The semantic gate must check the level appropriate to the task:
 
 **Always check:**
 
-- every requirement item has an owning pair or GAP, and every selected pair has a pairing basis;
-- every known material cross-project boundary has both endpoints verified, explicitly excluded, or represented by GAP/CONFLICT;
+- every requirement item has an owning source or GAP, and every selected source has a selection basis;
+- every known material cross-source boundary has both endpoints verified, explicitly excluded, or represented by GAP/CONFLICT;
 - every precise current identifier resolves to a VERIFIED anchor;
 - REQUIREMENT, SUMMARY, FACT, PROPOSAL, DECISION, ASSUMPTION, GAP, and CONFLICT are clearly separated;
 - current implementation is not improperly supported by REQUIREMENT or wiki SUMMARY;
@@ -132,9 +132,9 @@ The semantic gate must check the level appropriate to the task:
 - every changed API, event, data domain, permission, job, configuration, metric, alert, and operations responsibility has an owner, explicit exclusion, or GAP;
 - in-scope repeated items are inventoried completely rather than sampled;
 - every required inventory item appears in the draft or has an explicit exclusion reason;
-- end-to-end behavior remains coherent across all affected project pairs.
+- end-to-end behavior remains coherent across all affected sources.
 
-Do not require workspace-wide wiki scanning, complete inventories, or full closure for ordinary single-pair tasks unless the change risk justifies it.
+Do not require workspace-wide wiki scanning, complete inventories, or full closure for ordinary single-source tasks unless the change risk justifies it.
 
 ## User Discussion and Decision Map
 
@@ -162,7 +162,7 @@ Generate the final document only when all conditions hold:
 - free-form user changes from the latest review cycle are applied;
 - all `DIRTY` sections are cleared;
 - Draft Readiness remains valid, and Full Closure remains valid when the task required it;
-- every known material cross-project boundary is verified end to end or represented by an admitted non-critical GAP;
+- every known material cross-source boundary is verified end to end or represented by an admitted non-critical GAP;
 - every precise current fact is supported by VERIFIED FACT;
 - every `ADD` has insufficiency evidence;
 - critical GAPs/CONFLICTs are resolved or correctly block finalization;

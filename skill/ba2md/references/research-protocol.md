@@ -28,30 +28,30 @@ Write `{WORKSPACE}/product/<slug>/research-plan.md`:
 - Managed source ids:
 - Managed wiki ids / logical wiki projects:
 
-## Selected Project Pairs
-| Pair ID | Wiki root | Sources root | Role in requirement | Pair proof |
-|---------|-----------|--------------|---------------------|------------|
-| | `wiki/<id>` or `wiki/<id>/<project>` | `sources/<id>` | | |
+## Selected Sources
+| Source ID | Sources root | Wiki coverage | Role in requirement | Selection basis |
+|-----------|--------------|---------------|---------------------|-----------------|
+| | `sources/<id>` | `wiki/<id>` or `wiki/<id>/<project>` (optional) | | |
 
-## Candidate Project Impact Map
-| Pair ID | Role | Requirement signals | Wiki/source basis | Expected impact | Decision | Exclusion reason |
-|---------|------|---------------------|-------------------|-----------------|----------|------------------|
+## Candidate Source Impact Map
+| Source ID | Role | Requirement signals | Wiki/source basis | Expected impact | Decision | Exclusion reason |
+|-----------|------|---------------------|-------------------|-----------------|----------|------------------|
 
-## Requirement-to-Project Coverage
-| Requirement ID | Owning pair | Supporting pairs | Status | Notes |
-|----------------|-------------|------------------|--------|-------|
+## Requirement-to-Source Coverage
+| Requirement ID | Owning source | Supporting sources | Status | Notes |
+|----------------|---------------|--------------------|--------|-------|
 
-## Cross-Project Boundary Coverage
-| Boundary ID | Caller/producer pair | Provider/consumer pair | Boundary | Status | Evidence/GAP |
-|-------------|----------------------|------------------------|----------|--------|--------------|
+## Cross-Source Boundary Coverage
+| Boundary ID | Caller/producer source | Provider/consumer source | Boundary | Status | Evidence/GAP |
+|-------------|------------------------|--------------------------|----------|--------|--------------|
 
 ## Initial Current-System Anchors
-| Pair ID | Concern | Candidate anchor | Confidence |
-|---------|---------|------------------|------------|
+| Source ID | Concern | Candidate anchor | Confidence |
+|-----------|---------|------------------|------------|
 
 ## Research Units
-| Unit ID | Trigger | Pair ID / Boundary | Concern | Questions | Expected facts | Dependencies | Status |
-|---------|---------|--------------------|---------|-----------|----------------|--------------|--------|
+| Unit ID | Trigger | Source ID / Boundary | Concern | Questions | Expected facts | Dependencies | Status |
+|---------|---------|----------------------|---------|-----------|----------------|--------------|--------|
 
 ## Execution State
 - Current node:
@@ -65,7 +65,7 @@ Write `{WORKSPACE}/product/<slug>/research-plan.md`:
 - Last gate:
 ```
 
-These tables prevent scope drift, but keep them lean. For ordinary single-pair work, one or two rows with explicit GAPs is better than a large speculative map.
+These tables prevent scope drift, but keep them lean. For ordinary single-source work, one or two rows with explicit GAPs is better than a large speculative map.
 
 ## Draft Readiness vs Full Closure
 
@@ -74,7 +74,7 @@ Use the lightweight **Draft Readiness Check** by default. Before broad draft wri
 - the selected requirement unit has path/hash/anchors;
 - inventory was taken from `ba2md discover` / `status` / `workspace.yaml` before content search;
 - every managed source id and logical wiki project is selected or explicitly excluded in the Candidate Project Impact Map;
-- the owning pair(s) have defensible wiki/source pairing proof with concrete `wiki/...` and `sources/<id>` roots (not bare collection roots);
+- the owning source(s) have concrete `sources/<id>` roots (not bare collection roots) and a defensible wiki-informed selection basis; wiki coverage is optional;
 - selected source roots are readable;
 - load-bearing current facts are either `VERIFIED` or recorded as GAP;
 - known material boundaries have an owner/endpoints, an explicit exclusion, or GAP;
@@ -89,7 +89,7 @@ A failed Draft Readiness item returns to Project Discovery or Research. A critic
 
 Derive research units from implementation concerns, not from template subsections. Use section constraints to decide what evidence the draft must contain; never create one brief per template subsection mechanically.
 
-Split by disjoint `project pair × concern`, such as:
+Split by disjoint `source × concern`, such as:
 
 - request-to-persistence main path;
 - API/contract fields, results, and errors;
@@ -99,20 +99,20 @@ Split by disjoint `project pair × concern`, such as:
 - observability, alerts, deployment, rollback, and tests;
 - governing specs, standards, ADRs, and design documents.
 
-Use a cross-pair unit only for an explicitly named integration boundary. State caller Pair ID, provider Pair ID, ownership, compatibility, and failure responsibility.
+Use a cross-source unit only for an explicitly named integration boundary. State caller source, provider source, ownership, compatibility, and failure responsibility.
 
 ## When a Brief Is Mandatory
 
 Create a brief when any condition holds:
 
 - a subagent performs research;
-- multiple project pairs are involved;
+- multiple sources are involved;
 - interface, schema, permission, limit, alert, migration, rollback, or other load-bearing facts are researched;
 - a spec/design/code conflict exists;
 - Draft Writing or Quality Gate triggers repair research;
 - an `ADD` decision needs existing-seam insufficiency evidence.
 
-For a tiny single-pair task, use one consolidated brief. The canonical `evidence-registry.md` is always required, even when research is small.
+For a tiny single-source task, use one consolidated brief. The canonical `evidence-registry.md` is always required, even when research is small.
 
 ## Subagent Assignment
 
@@ -121,15 +121,15 @@ Delegate only when the unit is independent, bounded, and has clear inputs/output
 Give each subagent:
 
 - the relevant requirement excerpt and requirement ID;
-- exactly one Pair ID, or one named cross-pair boundary;
-- selected wiki SUMMARY entry pages;
+- exactly one Source ID, or one named cross-source boundary;
+- selected wiki SUMMARY entry pages (optional discovery context for the source);
 - **concrete** sources root (`sources/<id>` or deeper path inside it) and known anchors — never the bare `sources/` collection;
 - bounded questions and expected evidence types;
 - only relevant template constraints, never every section file;
 - the Java test exclusion: `test.java`, `src/test/`, `*Test.java`, `*Tests.java`, and `*IT.java`;
 - `assets/research-brief-template.md`;
 - instruction to obey repository-local `AGENTS.md` and use context-graph tools before grep when available;
-- instruction to search only under the assigned pair roots; do not run workspace-wide `sources/**` or `wiki/**` enumeration;
+- instruction to search only under the assigned source root and any cited wiki pages; do not run workspace-wide `sources/**` or `wiki/**` enumeration;
 - instruction to report contrary, missing, and insufficient evidence;
 - instruction not to edit the final design.
 
@@ -145,7 +145,7 @@ A subagent may report `SUMMARY`, `FACT`, `ASSUMPTION`, `GAP`, and `CONFLICT`; it
 
 The main agent must:
 
-1. confirm Pair ID or boundary scope;
+1. confirm Source ID or boundary scope;
 2. reopen load-bearing raw anchors;
 3. verify route composition, fields, symbols, schemas, permissions, limits, alerts, rollback, and operations claims when relevant;
 4. promote accepted FACT candidates from `FOUND` to `VERIFIED` in the registry;
@@ -169,7 +169,7 @@ Reject or repair a brief when:
 
 Use the same brief template with `Trigger: Repair Research`. Include source node, failed gate or writing gap, affected claim IDs and dirty sections, prior searches, exact unknowns, bounded roots, and completion condition.
 
-Default to one Repair Research unit per unique missing-fact cluster. Create another only when the previous unit reveals a new concrete path, symbol, artifact type, source type, owner, project pair, boundary, or user-provided corpus. Never rerun the same searches through another subagent merely to seek a different answer.
+Default to one Repair Research unit per unique missing-fact cluster. Create another only when the previous unit reveals a new concrete path, symbol, artifact type, source type, owner, source project, boundary, or user-provided corpus. Never rerun the same searches through another subagent merely to seek a different answer.
 
 Close a research unit successfully when either:
 
@@ -192,7 +192,7 @@ Provide the draft, evidence registry, research plan, selected raw anchors, and a
 |------------|------|----------|---------|-------|-------------------|------------|--------------------------|
 ```
 
-The reviewer checks pairing, exact identifiers, boundary endpoints, current/target separation, existing-seam proof for `ADD`, irrelevant populated sections, missing acceptance/security/reliability/migration/rollback coverage, and user-decidable design choices.
+The reviewer checks source selection, exact identifiers, boundary endpoints, current/target separation, existing-seam proof for `ADD`, irrelevant populated sections, missing acceptance/security/reliability/migration/rollback coverage, and user-decidable design choices.
 
 A gate subagent must not edit the draft, promote FACTs, choose business outcomes, or declare final PASS. The main agent rechecks load-bearing Findings, deduplicates them, and routes them. Mechanical PASS never substitutes for semantic acceptance.
 
