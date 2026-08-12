@@ -5,19 +5,25 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { describe, it } from 'node:test';
 import { initWorkspace } from '../workspace/init.js';
-import { addSource, addWiki } from '../resources/source.js';
+import { addSource } from '../resources/source.js';
 import { makeTempDir, writeFile } from './helpers.js';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const validatorScript = path.join(repoRoot, 'skill/ba2md/scripts/validate_artifacts.py');
 
-function runValidator(workspace: string, productDir: string): {
+interface ValidatorResult {
   code: number | null;
   stdout: string;
-} {
+}
+
+function runValidator(
+  workspace: string,
+  productDir: string,
+  mode = 'all',
+): ValidatorResult {
   const result = spawnSync(
     'python3',
-    [validatorScript, '--workspace', workspace, '--product-dir', productDir, '--mode', 'plan'],
+    [validatorScript, '--workspace', workspace, '--product-dir', productDir, '--mode', mode],
     { encoding: 'utf8' },
   );
   return {
@@ -26,126 +32,337 @@ function runValidator(workspace: string, productDir: string): {
   };
 }
 
-function planTables(options: {
-  sources: Array<{ id: string; sources: string; wiki?: string }>;
-  impact: Array<{ id: string; decision: string; reason: string }>;
+function requirementInput(id: string): string {
+  return `| ${id} | Main | \`requirements/req.md\` | | VERIFIED | |`;
+}
+
+function requirementFileContent(): string {
+  return `# Requirement
+
+The system shall validate evidence anchors against real source files.
+`;
+}
+
+function evidenceRow(opts: {
+  id: string;
+  label: string;
+  status: string;
+  anchor: string;
+  verifiedBy?: string;
 }): string {
-  const sourceRows = options.sources
-    .map((s) => `| ${s.id} | ${s.sources} | ${s.wiki ?? ''} | owner | basis |`)
-    .join('\n');
-  const impactRows = options.impact
-    .map((s) => `| ${s.id} | owner | signal | basis | impact | ${s.decision} | ${s.reason} |`)
-    .join('\n');
-  const owning = options.sources[0]?.id ?? 'svc-a';
-  return `# Research Plan
+  const scope = opts.id.split('-')[1] ?? 'X';
+  return `| ${opts.id} | ${opts.label} | ${opts.status} | ${scope} | claim | code | \`${opts.anchor}\` | | | ${opts.verifiedBy ?? ''} |`;
+}
+
+function registryDoc(parts: {
+  evidence?: string[];
+  claims?: string[];
+  issues?: string[];
+  includeClaimsHeader?: boolean;
+  includeIssuesHeader?: boolean;
+}): string {
+  const evidence = (parts.evidence ?? []).join('\n');
+  const claims = parts.includeClaimsHeader === false ? '' : [
+    '## Design Claims',
+    '',
+    '| Claim ID | Label | Status | Claim | Basis Evidence IDs | Alternatives and rationale | Supported sections |',
+    '|----------|-------|--------|-------|--------------------|----------------------------|--------------------|',
+    (parts.claims ?? []).join('\n'),
+  ].join('\n');
+  const issues = parts.includeIssuesHeader === false ? '' : [
+    '## Issue Register',
+    '',
+    '| Issue ID | Label | Critical | Status | Description | Evidence IDs | Impact | Validation or resolution | Owner | Supported sections |',
+    '|----------|-------|----------|--------|-------------|--------------|--------|--------------------------|-------|--------------------|',
+    (parts.issues ?? []).join('\n'),
+  ].join('\n');
+  return `# Evidence Registry
+
+## Requirement Inputs
+
+| Requirement ID | Main/Supporting | Path | SHA-256 | Status | Selection basis |
+|----------------|-----------------|------|---------|--------|-----------------|
+${requirementInput('R-REQ-001')}
+
+## Evidence Records
+
+| Evidence ID | Label | Status | Scope ID | Claim | Source type | Exact anchor | Symbol | Supported sections | Verified by |
+|-------------|-------|--------|----------|-------|-------------|--------------|--------|--------------------|-------------|
+${evidence}
+
+${claims}
+
+${issues}
+`;
+}
+
+function draftDoc(): string {
+  return `---
+status: draft
+---
+
+# Draft
+
+Verified claim based on F-SVCA-001.
+`;
+}
+
+function makeRequirement(workspace: string): Promise<void> {
+  return writeFile(path.join(workspace, 'requirements', 'req.md'), requirementFileContent());
+}
+
+describe('validate_artifacts', () => {
+  it('passes when only one source is used and other registered sources are unmentioned', async () => {
+    const cwd = await makeTempDir();
+    const { root } = await initWorkspace('ws', cwd);
+    const a = path.join(cwd, 'svc-a');
+    const b = path.join(cwd, 'svc-b');
+    await fsp.mkdir(a);
+    await fsp.mkdir(b);
+    await writeFile(path.join(a, 'Foo.java'), 'class Foo {}\n');
+    await writeFile(path.join(b, 'Other.java'), 'class Other {}\n');
+    await addSource(root, a, { id: 'svc-a' });
+    await addSource(root, b, { id: 'svc-b' });
+    await makeRequirement(root);
+
+    const product = path.join(root, 'product', 'demo-sdd');
+    await fsp.mkdir(product, { recursive: true });
+    await writeFile(
+      path.join(product, 'evidence-registry.md'),
+      registryDoc({
+        evidence: [
+          evidenceRow({
+            id: 'F-SVCA-001',
+            label: 'FACT',
+            status: 'VERIFIED',
+            anchor: 'sources/svc-a/Foo.java:1',
+            verifiedBy: 'main agent',
+          }),
+        ],
+      }),
+    );
+    await writeFile(path.join(product, 'demo-sdd.draft.md'), draftDoc());
+
+    const result = runValidator(root, product, 'draft');
+    assert.equal(result.code, 0, result.stdout);
+    assert.doesNotMatch(result.stdout, /svc-b/);
+  });
+
+  it('fails when a VERIFIED FACT anchor points to a missing file', async () => {
+    const cwd = await makeTempDir();
+    const { root } = await initWorkspace('ws', cwd);
+    const a = path.join(cwd, 'svc-a');
+    await fsp.mkdir(a);
+    await writeFile(path.join(a, 'Foo.java'), 'class Foo {}\n');
+    await addSource(root, a, { id: 'svc-a' });
+    await makeRequirement(root);
+
+    const product = path.join(root, 'product', 'demo-sdd');
+    await fsp.mkdir(product, { recursive: true });
+    await writeFile(
+      path.join(product, 'evidence-registry.md'),
+      registryDoc({
+        evidence: [
+          evidenceRow({
+            id: 'F-SVCA-001',
+            label: 'FACT',
+            status: 'VERIFIED',
+            anchor: 'sources/svc-a/Missing.java:1',
+            verifiedBy: 'main agent',
+          }),
+        ],
+      }),
+    );
+    await writeFile(path.join(product, 'demo-sdd.draft.md'), draftDoc());
+
+    const result = runValidator(root, product, 'draft');
+    assert.notEqual(result.code, 0);
+    assert.match(result.stdout, /Missing\.java|does not exist/i);
+  });
+
+  it('fails when a VERIFIED FACT has no Verified by', async () => {
+    const cwd = await makeTempDir();
+    const { root } = await initWorkspace('ws', cwd);
+    const a = path.join(cwd, 'svc-a');
+    await fsp.mkdir(a);
+    await writeFile(path.join(a, 'Foo.java'), 'class Foo {}\n');
+    await addSource(root, a, { id: 'svc-a' });
+    await makeRequirement(root);
+
+    const product = path.join(root, 'product', 'demo-sdd');
+    await fsp.mkdir(product, { recursive: true });
+    await writeFile(
+      path.join(product, 'evidence-registry.md'),
+      registryDoc({
+        evidence: [
+          evidenceRow({
+            id: 'F-SVCA-001',
+            label: 'FACT',
+            status: 'VERIFIED',
+            anchor: 'sources/svc-a/Foo.java:1',
+          }),
+        ],
+      }),
+    );
+    await writeFile(path.join(product, 'demo-sdd.draft.md'), draftDoc());
+
+    const result = runValidator(root, product, 'draft');
+    assert.notEqual(result.code, 0);
+    assert.match(result.stdout, /missing Verified by/i);
+  });
+
+  it('fails when a draft references an unknown evidence ID', async () => {
+    const cwd = await makeTempDir();
+    const { root } = await initWorkspace('ws', cwd);
+    const a = path.join(cwd, 'svc-a');
+    await fsp.mkdir(a);
+    await writeFile(path.join(a, 'Foo.java'), 'class Foo {}\n');
+    await addSource(root, a, { id: 'svc-a' });
+    await makeRequirement(root);
+
+    const product = path.join(root, 'product', 'demo-sdd');
+    await fsp.mkdir(product, { recursive: true });
+    await writeFile(
+      path.join(product, 'evidence-registry.md'),
+      registryDoc({
+        evidence: [
+          evidenceRow({
+            id: 'F-SVCA-001',
+            label: 'FACT',
+            status: 'VERIFIED',
+            anchor: 'sources/svc-a/Foo.java:1',
+            verifiedBy: 'main agent',
+          }),
+        ],
+      }),
+    );
+    await writeFile(
+      path.join(product, 'demo-sdd.draft.md'),
+      `---
+status: draft
+---
+
+# Draft
+
+Bogus reference F-SVCA-999.
+`,
+    );
+
+    const result = runValidator(root, product, 'draft');
+    assert.notEqual(result.code, 0);
+    assert.match(result.stdout, /F-SVCA-999/);
+  });
+
+  it('passes in draft even when Design Claims and Issue tables are absent (warnings only)', async () => {
+    const cwd = await makeTempDir();
+    const { root } = await initWorkspace('ws', cwd);
+    const a = path.join(cwd, 'svc-a');
+    await fsp.mkdir(a);
+    await writeFile(path.join(a, 'Foo.java'), 'class Foo {}\n');
+    await addSource(root, a, { id: 'svc-a' });
+    await makeRequirement(root);
+
+    const product = path.join(root, 'product', 'demo-sdd');
+    await fsp.mkdir(product, { recursive: true });
+    // Registry with Evidence Records only — no Design Claims / Issue Register sections.
+    await writeFile(
+      path.join(product, 'evidence-registry.md'),
+      `# Evidence Registry
+
+## Requirement Inputs
+
+| Requirement ID | Main/Supporting | Path | SHA-256 | Status | Selection basis |
+|----------------|-----------------|------|---------|--------|-----------------|
+${requirementInput('R-REQ-001')}
+
+## Evidence Records
+
+| Evidence ID | Label | Status | Scope ID | Claim | Source type | Exact anchor | Symbol | Supported sections | Verified by |
+|-------------|-------|--------|----------|-------|-------------|--------------|--------|--------------------|-------------|
+${evidenceRow({
+  id: 'F-SVCA-001',
+  label: 'FACT',
+  status: 'VERIFIED',
+  anchor: 'sources/svc-a/Foo.java:1',
+  verifiedBy: 'main agent',
+})}
+`,
+    );
+    await writeFile(path.join(product, 'demo-sdd.draft.md'), draftDoc());
+
+    const result = runValidator(root, product, 'draft');
+    assert.equal(result.code, 0, result.stdout);
+    assert.match(result.stdout, /PASSED/);
+  });
+
+  it('fails on a bare sources/ root in a research-plan Selected Sources row', async () => {
+    const cwd = await makeTempDir();
+    const { root } = await initWorkspace('ws', cwd);
+    const a = path.join(cwd, 'svc-a');
+    await fsp.mkdir(a);
+    await writeFile(path.join(a, 'Foo.java'), 'class Foo {}\n');
+    await addSource(root, a, { id: 'svc-a' });
+
+    const product = path.join(root, 'product', 'demo-sdd');
+    await fsp.mkdir(product, { recursive: true });
+    await writeFile(
+      path.join(product, 'research-plan.md'),
+      `# Research Plan
 
 ## Selected Sources
 | Source ID | Sources root | Wiki coverage | Role in requirement | Selection basis |
 |-----------|--------------|---------------|---------------------|-----------------|
-${sourceRows}
-
-## Candidate Source Impact Map
-| Source ID | Role | Requirement signals | Wiki/source basis | Expected impact | Decision | Exclusion reason |
-|-----------|------|---------------------|-------------------|-----------------|----------|------------------|
-${impactRows}
-
-## Requirement-to-Source Coverage
-| Requirement ID | Owning source | Supporting sources | Status | Notes |
-|----------------|---------------|--------------------|--------|-------|
-| R-FEAT-001 | ${owning} | | covered | |
-
-## Cross-Source Boundary Coverage
-| Boundary ID | Caller/producer source | Provider/consumer source | Boundary | Status | Evidence/GAP |
-|-------------|------------------------|--------------------------|----------|--------|--------------|
-`;
-}
-
-describe('validate_artifacts registry coverage', () => {
-  it('rejects a bare sources/ root', async () => {
-    const cwd = await makeTempDir();
-    const { root } = await initWorkspace('ws', cwd);
-    const sourceDir = path.join(cwd, 'svc');
-    await fsp.mkdir(sourceDir);
-    await writeFile(path.join(sourceDir, 'a.txt'), 'a\n');
-    await addSource(root, sourceDir, { id: 'svc' });
-
-    const productDir = path.join(root, 'product', 'demo-sdd');
-    await fsp.mkdir(productDir, { recursive: true });
-    await writeFile(
-      path.join(productDir, 'research-plan.md'),
-      planTables({
-        sources: [{ id: 'svc', sources: 'sources/' }],
-        impact: [{ id: 'svc', decision: 'SELECT', reason: '-' }],
-      }),
+| svc-a | sources/ | | owner | name match |
+`,
     );
 
-    const result = runValidator(root, productDir);
+    const result = runValidator(root, product, 'plan');
     assert.notEqual(result.code, 0);
     assert.match(result.stdout, /bare collection root/i);
   });
 
-  it('fails when a registered source id is omitted from the plan', async () => {
+  it('fails when a final candidate leaves a critical GAP open', async () => {
     const cwd = await makeTempDir();
     const { root } = await initWorkspace('ws', cwd);
-    const a = path.join(cwd, 'a');
-    const b = path.join(cwd, 'b');
-    const wikiDir = path.join(cwd, 'w');
+    const a = path.join(cwd, 'svc-a');
     await fsp.mkdir(a);
-    await fsp.mkdir(b);
-    await fsp.mkdir(wikiDir);
-    await writeFile(path.join(a, 'a.txt'), 'a\n');
-    await writeFile(path.join(b, 'b.txt'), 'b\n');
-    await writeFile(path.join(wikiDir, 'README.md'), '# w\n');
+    await writeFile(path.join(a, 'Foo.java'), 'class Foo {}\n');
     await addSource(root, a, { id: 'svc-a' });
-    await addSource(root, b, { id: 'svc-b' });
-    await addWiki(root, wikiDir, { id: 'docs' });
+    await makeRequirement(root);
 
-    const productDir = path.join(root, 'product', 'demo-sdd');
-    await fsp.mkdir(productDir, { recursive: true });
+    const product = path.join(root, 'product', 'demo-sdd');
+    await fsp.mkdir(product, { recursive: true });
     await writeFile(
-      path.join(productDir, 'research-plan.md'),
-      planTables({
-        sources: [{ id: 'svc-a', sources: 'sources/svc-a', wiki: 'wiki/docs' }],
-        impact: [{ id: 'svc-a', decision: 'SELECT', reason: '-' }],
-      }),
-    );
-
-    const result = runValidator(root, productDir);
-    assert.notEqual(result.code, 0);
-    assert.match(result.stdout, /svc-b/);
-  });
-
-  it('passes when every managed source is selected or excluded and the wiki is referenced', async () => {
-    const cwd = await makeTempDir();
-    const { root } = await initWorkspace('ws', cwd);
-    const a = path.join(cwd, 'a');
-    const b = path.join(cwd, 'b');
-    const wikiDir = path.join(cwd, 'w');
-    await fsp.mkdir(a);
-    await fsp.mkdir(b);
-    await fsp.mkdir(wikiDir);
-    await writeFile(path.join(a, 'a.txt'), 'a\n');
-    await writeFile(path.join(b, 'b.txt'), 'b\n');
-    await writeFile(path.join(wikiDir, 'README.md'), '# w\n');
-    await addSource(root, a, { id: 'svc-a' });
-    await addSource(root, b, { id: 'svc-b' });
-    await addWiki(root, wikiDir, { id: 'docs' });
-
-    const productDir = path.join(root, 'product', 'demo-sdd');
-    await fsp.mkdir(productDir, { recursive: true });
-    await writeFile(
-      path.join(productDir, 'research-plan.md'),
-      planTables({
-        sources: [{ id: 'svc-a', sources: 'sources/svc-a', wiki: 'wiki/docs' }],
-        impact: [
-          { id: 'svc-a', decision: 'SELECT', reason: '-' },
-          { id: 'svc-b', decision: 'EXCLUDE', reason: 'not in requirement path' },
+      path.join(product, 'evidence-registry.md'),
+      registryDoc({
+        evidence: [
+          evidenceRow({
+            id: 'F-SVCA-001',
+            label: 'FACT',
+            status: 'VERIFIED',
+            anchor: 'sources/svc-a/Foo.java:1',
+            verifiedBy: 'main agent',
+          }),
+        ],
+        issues: [
+          '| G-FEAT-001 | GAP | Yes | OPEN | missing rollback plan | F-SVCA-001 | blocks final | | owner | 3.2 |',
         ],
       }),
     );
+    await writeFile(
+      path.join(product, 'demo-sdd.md'),
+      `---
+status: final
+---
 
-    const result = runValidator(root, productDir);
-    assert.equal(result.code, 0, result.stdout);
-    assert.match(result.stdout, /PASSED/);
+# Final
+
+Done per F-SVCA-001.
+`,
+    );
+
+    const result = runValidator(root, product, 'final');
+    assert.notEqual(result.code, 0);
+    assert.match(result.stdout, /G-FEAT-001/i);
   });
 });

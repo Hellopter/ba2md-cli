@@ -4,13 +4,15 @@
 
 | Requirement ID | Main/Supporting | Path | SHA-256 | Status | Selection basis |
 |----------------|-----------------|------|---------|--------|-----------------|
-| RQ-<REQ>-001 | Main | `requirements/...md` | | ACTIVE/STALE/SUPERSEDED | |
+| R-<REQ>-001 | Main | `requirements/...md` | | ACTIVE/STALE/SUPERSEDED | |
 
-## Selected Sources
+## Selected Sources (running note, derived from evidence)
 
-| Source ID | Sources root | Wiki coverage | Roles | Selection basis | Responsibility scope | Impact status |
-|-----------|--------------|---------------|-------|-----------------|----------------------|---------------|
-| | `sources/<id>` | `wiki/<id>` (optional) | | | | SELECTED/EXCLUDED |
+> Optional. Append-only as research surfaces more sources. The set of in-scope sources is exactly the distinct `sources/<id>` roots in Evidence Records below — this table is a convenience summary, not a prerequisite for writing evidence.
+
+| Source ID | Sources root | Wiki coverage | Roles | Selection basis | Responsibility scope |
+|-----------|--------------|---------------|-------|-----------------|----------------------|
+| | `sources/<id>` | `wiki/<id>` (optional) | | | |
 
 ## Evidence Records
 

@@ -4,6 +4,8 @@ Treat the active `{SKILL_DIR}/templates/` directory as the sole document-structu
 
 The template tells you what the document may contain; it does not prove that facts exist and it must not mechanically create research units.
 
+Write the document's prose in the workspace language (`workspace.yaml` `language:`, default `zh`), following the active template for structure and headings. Keep evidence anchors, IDs, and code identifiers (paths, symbols, fields, routes, schema/config names) verbatim; never localize them.
+
 ## Writing Preconditions
 
 Before starting or resuming writing, confirm that:

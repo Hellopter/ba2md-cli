@@ -1,10 +1,12 @@
 # Source Discovery and Selection
 
-Use this phase to select project scope, not to perform deep implementation research. Prefer the smallest set of sources that covers the requirement and known material boundaries.
+Use this phase to identify the starting source for a requirement, not to perform deep implementation research and not to pre-declare the full set of sources upfront.
 
-Wiki and sources are **independent collections**. `wiki/` is a discovery/positioning layer that spans the source corpus; `sources/` is the corpus of codebases. A requirement selects a subset of sources, informed by what the wiki says about them. There is no one-to-one pairing: one wiki entry may inform several sources, one source may be informed by several wiki entries or none, and a source may be selected with no wiki coverage at all.
+Wiki and sources are **independent collections**. `wiki/` is a discovery/positioning layer that spans the source corpus; `sources/` is the corpus of codebases. There is no one-to-one pairing: one wiki entry may inform several sources, one source may be informed by several wiki entries or none, and a source may be selected with no wiki coverage at all.
 
-**Hard rule:** finish the inventory and source-selection tables before any workspace-wide content search. Content search may only run inside an already-identified source root (or a specific wiki page).
+**Selection is progressive** (defined in section 3): a source enters scope when you write evidence anchored under `sources/<id>`, and you add more only as evidence surfaces them — never by pre-selecting or pre-excluding every managed source upfront.
+
+**Hard rule:** finish the inventory (what sources/wiki exist) before any workspace-wide content search. Content search may only run inside an already-identified source root (or a specific wiki page).
 
 ## 0. Mandatory Inventory Order
 
@@ -14,13 +16,13 @@ Do these steps in order. Do not skip ahead to `grep`, `Glob`, or symbol search.
    - `ba2md discover --json` (best: managed entries + logical projects);
    - else `ba2md status --json`;
    - else read `{WORKSPACE}/workspace.yaml` and list one level of `{WORKSPACE}/sources/` and `{WORKSPACE}/wiki/`.
-2. **Record every managed entry** under `sources.<id>` and `wiki.<id>`. Treat the registry as a **lower bound**, not a hint. An id that exists in the registry is a real project entry even if a later content search never returns files from it.
+2. **Record the inventory** of managed `sources/<id>` and `wiki/<id>` entries. Inventory = "what sources and wiki exist". It is **not** a selection. You do not decide upfront which sources this requirement touches.
 3. **Reconcile disk vs registry.** List immediate children of `sources/` and `wiki/` only (depth 1). Match names to registry ids. Record missing paths as broken; record unregistered directories as orphans to evaluate, not to ignore silently.
-4. **Expand logical projects** (section 1) before reading wiki pages in depth.
-5. **Write the Candidate Source Impact Map** with every managed source id represented as `select` or `exclude` plus reason. Read every managed wiki entry as discovery material and reference each via a `wiki/<id>` path somewhere in the plan.
-6. **Only then** may content search run, and only under a concrete root such as `sources/<source-id>/` or `wiki/<wiki-id>/` or `wiki/<wiki-id>/<project>/`.
+4. **Expand logical projects** (section 1) so you know the shape of each wiki entry.
+5. **Read the requirement**, then read the **requirement-relevant** wiki pages to learn which sources likely matter.
+6. **Pick the most relevant source to start**, then begin research. **Only then** may content search run, and only under a concrete root such as `sources/<source-id>/` or `wiki/<wiki-id>/`.
 
-If the CLI is unavailable, perform the same steps with `workspace.yaml` + directory listing. Never invent a single-source workspace when the registry lists multiple ids.
+Inventory is fixed; **selection is progressive**. You may start with one source and add more as evidence surfaces them (section 3).
 
 ## 1. Locate Roots and Expand Logical Projects
 
@@ -68,7 +70,9 @@ Build a lightweight index without loading every page in full. Capture:
 
 ## 2. Read Wiki Entry Pages for Discovery
 
-Read entry material for plausible wiki projects, not every project by default. Read the wiki to build a map of the corpus — what each source is, ownership, boundaries, terminology — so you can decide which sources a requirement touches. A wiki project is worth reading when any of these apply:
+Read the wiki **on demand, driven by the requirement** — not the whole wiki up front. The flow is: read the requirement → read the wiki pages whose titles/headings/domain terms match the requirement → from those pages learn which sources exist and which likely matter → start researching the most relevant one.
+
+A wiki project is worth reading when any of these apply:
 
 - its name, title, headings, aliases, or domain terms match the requirement;
 - it is linked from a plausible owner source's context;
@@ -97,17 +101,26 @@ Capture only:
 
 Use wiki only for SUMMARY records and search hypotheses. Do not treat class names, fields, routes, schemas, configuration, or operational claims copied from wiki as exact FACTs.
 
-## 3. Select Sources Using Wiki Discovery
+## 3. Select Sources Progressively
 
-Build a source selection table:
+Selection is **progressive, not upfront**. The flow is:
 
-| Source ID | Sources root | Wiki coverage (optional) | Requirement match | Candidate role | Selection basis | Decision |
-|-----------|--------------|---------------------------|-------------------|----------------|-----------------|----------|
-| | `sources/<id>` | `wiki/<id>/<page>` or — | strong/medium/weak | owner/boundary/data/event/auth/job/ops/near-match | wiki-informed reason | select/exclude |
+```
+read requirement → read requirement-relevant wiki → pick the most relevant source
+→ research it → (evidence surfaces another source) → add that source → research it → …
+```
 
-Selection = the source is in scope for this requirement. **Wiki coverage is optional**: a source may be selected with no wiki page describing it (selection then rests on the requirement and source identity), and a wiki entry that describes no selected source is still read for discovery and referenced via `wiki/<id>`. One wiki entry may inform the selection of several sources; one source may be informed by several wiki entries or none. There is no one-to-one constraint between wiki and sources.
+A source enters scope the moment you write evidence anchored under `sources/<id>`. **There is no separate "select before you write" step, and no requirement to pre-select or pre-exclude every managed source.** The evidence registry is the source of truth for which sources are in scope: if `evidence-registry.md` contains anchors under `sources/svc-a` and `sources/svc-b`, then both are selected — regardless of what any selection table says.
 
-Selection basis (why this source is in scope) should rest on at least one signal stronger than a keyword coincidence, in this order:
+You may keep an optional Selected Sources table as a running note of what you believe is in scope, but:
+
+- it is **derived from evidence**, not a prerequisite for it;
+- it is **append-only as evidence grows** — never go back and "exclude" sources you have not investigated just to satisfy a checklist;
+- the mechanical validator does **not** read it and does **not** fail when sources are unmentioned.
+
+### Starting selection
+
+Pick the source to start from using wiki discovery, in this signal order:
 
 1. explicit repository/source link in wiki metadata describing this source;
 2. exact directory name equality between a logical wiki project and the managed source id;
@@ -115,15 +128,11 @@ Selection basis (why this source is in scope) should rest on at least one signal
 4. matching package/service identity in README, build manifest, deployment metadata, or source root;
 5. matching domain ownership and integration names.
 
-These signals confirm a source's **identity and role**; they do not pair it to a wiki entry. A source selected purely on requirement grounds (with no wiki coverage) is valid — record the requirement-derived basis and note the missing wiki coverage as a discovery GAP.
+A source selected purely on requirement grounds (with no wiki coverage) is valid — note the missing wiki coverage as a discovery GAP.
 
-### Registry coverage (required)
+### Expanding selection during research
 
-Before freezing scope:
-
-- every `workspace.yaml` `sources.<id>` appears in the Candidate Source Impact Map as `select` or `exclude` with a concrete reason;
-- every managed wiki id is referenced by a `wiki/<id>` path somewhere in the plan (as discovery context, not as a select/exclude row);
-- if multiple source ids exist and only one is selected, the others must be explicitly excluded — silence is invalid and usually means discovery truncated.
+When research or human review reveals that another source is relevant (an import, a call, a shared contract, an event producer/consumer, a data owner), add it to scope by researching it and writing evidence anchored under `sources/<id>`. Do **not** maintain a "full closure" of all managed sources unless the task is high-risk (section 5, Full Closure). For ordinary work, "unmentioned" means "not yet evaluated", not "excluded".
 
 ## 4. Perform Shallow Source Reconnaissance
 
@@ -142,44 +151,34 @@ Use this pass to confirm source identity, locate likely main paths, and detect d
 
 If reconnaissance reveals an unaccounted material source, return it to wiki reading and selection. Source evidence may expand or correct wiki-derived scope.
 
-## 5. Select the Minimal Covering Set
+## 5. Rank Sources and Decide Closure
 
-Rank sources by:
+Rank candidate sources by: direct ownership of the behavior; requirement vocabulary in wiki entry pages or source roots; current implementation anchors; upstream/downstream relevance; data/event/authorization/job/operations ownership; and evidence recency when known. Add more only when evidence shows each contributes a distinct part of the requirement or a material boundary that may be affected.
 
-- direct ownership of the behavior;
-- presence of requirement vocabulary in wiki entry pages or source roots;
-- presence of current implementation anchors;
-- upstream/downstream relevance;
-- data/event/authorization/job/operations ownership;
-- evidence recency when known.
+A normal task may begin deep research once the starting owner source, known material boundaries, and unresolved GAPs are recorded. Do not force a workspace-wide closure pass unless the change is high-risk or the user requests complete impact analysis.
 
-Select one or more sources only when each contributes a distinct part of the requirement or a material boundary that may be affected. Record rejected near-matches to prevent later accidental evidence mixing.
-
-A normal task may begin deep research once the selected owner source(s), known material boundaries, and unresolved GAPs are recorded. Do not force a workspace-wide closure pass unless the change is high-risk or the user requests complete impact analysis.
-
-Use a Full Closure Check only when the change affects multiple services, external contracts, database schema, authorization/tenancy/security, money/accounting/audit, asynchronous events/jobs, deployment/rollback, or other high-risk boundaries. For that check, confirm:
+Use a **Full Closure Check** only when the change affects multiple services, external contracts, database schema, authorization/tenancy/security, money/accounting/audit, asynchronous events/jobs, deployment/rollback, or other high-risk boundaries. For that check, confirm:
 
 - every requirement item has an owning source or GAP;
-- every known material cross-source boundary has both endpoints selected, explicitly excluded with evidence, or recorded as GAP;
+- every known material cross-source boundary has both endpoints researched (evidence under both `sources/<id>` roots) or recorded as GAP;
 - every changed data domain has an identified owner or GAP;
-- every changed event has producer and relevant consumer coverage or GAP;
-- every strong candidate is selected or has a concrete exclusion reason;
-- every registered managed source id is selected or explicitly excluded.
+- every changed event has producer and relevant consumer coverage or GAP.
+
+Full Closure is about **coverage of the requirement's material boundaries**, not about pre-excluding every registered source. Sources not touched by the requirement remain simply unmentioned.
 
 ## 6. Emit Initial Scope
 
 Before deep research or delegation, state in `research-plan.md`:
 
 - inventory source (`ba2md discover`, `ba2md status`, or `workspace.yaml` + listing);
-- selected sources and why;
-- rejected near-matches and why;
-- explicit exclusions for other registered source ids;
-- wiki entries read for discovery and the `wiki/<id>` references;
+- the starting source and why it is the most relevant;
 - expected main path per source;
-- known cross-source boundaries and endpoints;
+- known cross-source boundaries and endpoints (add more as research finds them);
 - open ambiguities or GAPs;
 - initial research units;
 - whether ordinary Draft Readiness is enough or Full Closure is required.
+
+This is a starting snapshot, not a frozen contract. Update it as selection grows.
 
 ## 7. Forbidden Discovery Anti-Patterns
 
@@ -188,11 +187,11 @@ Do **not**:
 1. Use `grep`/`rg`/`Glob` on `sources/**` or `wiki/**` (or `sources/**/*.java`, `wiki/*.md`, etc.) as the way to **enumerate** projects or decide how many projects exist.
 2. Treat a truncated workspace-wide search hit list as the full project set.
 3. Conclude there is no wiki because `wiki/*.md` matched nothing while `wiki/<id>/` directories exist.
-4. Use bare `wiki/` or `sources/` as a Selected Source root.
-5. Enter Research, write briefs, or draft implementation claims before the Candidate Source Impact Map covers every managed source id.
+4. Use bare `wiki/` or `sources/` as a source root.
+5. Pre-select or pre-exclude every managed source before research. Selection is progressive; "unmentioned" means "not yet evaluated", not "excluded".
 6. Collapse multiple managed source ids into one selected source because the first search only returned files under one id.
 7. Force a one-to-one wiki↔source mapping, or reject a source because no wiki entry describes it. Wiki coverage is optional.
-8. Ask the user "which single repo?" when `workspace.yaml` already lists multiple sources without first presenting the inventory and a recommended covering set.
+8. Maintain a "selection must be closed" table and go back to edit prior exclusions whenever a new source is discovered — just research the new source and write its evidence.
 
 ## 8. Allowed Search Patterns After Inventory
 

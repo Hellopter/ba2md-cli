@@ -28,14 +28,12 @@ Write `{WORKSPACE}/product/<slug>/research-plan.md`:
 - Managed source ids:
 - Managed wiki ids / logical wiki projects:
 
-## Selected Sources
+## Selected Sources (running note, derived from evidence)
 | Source ID | Sources root | Wiki coverage | Role in requirement | Selection basis |
 |-----------|--------------|---------------|---------------------|-----------------|
 | | `sources/<id>` | `wiki/<id>` or `wiki/<id>/<project>` (optional) | | |
 
-## Candidate Source Impact Map
-| Source ID | Role | Requirement signals | Wiki/source basis | Expected impact | Decision | Exclusion reason |
-|-----------|------|---------------------|-------------------|-----------------|----------|------------------|
+> Optional. This is a running note of what you believe is in scope, **derived from the evidence you have written** — not a prerequisite for writing evidence. Add rows as research surfaces more sources. The mechanical validator does not read this table and does not fail when sources are unmentioned.
 
 ## Requirement-to-Source Coverage
 | Requirement ID | Owning source | Supporting sources | Status | Notes |
@@ -73,8 +71,8 @@ Use the lightweight **Draft Readiness Check** by default. Before broad draft wri
 
 - the selected requirement unit has path/hash/anchors;
 - inventory was taken from `ba2md discover` / `status` / `workspace.yaml` before content search;
-- every managed source id and logical wiki project is selected or explicitly excluded in the Candidate Project Impact Map;
-- the owning source(s) have concrete `sources/<id>` roots (not bare collection roots) and a defensible wiki-informed selection basis; wiki coverage is optional;
+- at least one starting source is picked and its `sources/<id>` root is readable (selection is progressive — you do not need to pre-select or pre-exclude every managed source);
+- the owning source(s) have concrete `sources/<id>` roots (not bare collection roots); wiki coverage is optional;
 - selected source roots are readable;
 - load-bearing current facts are either `VERIFIED` or recorded as GAP;
 - known material boundaries have an owner/endpoints, an explicit exclusion, or GAP;

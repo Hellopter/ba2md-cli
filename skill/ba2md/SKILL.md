@@ -28,6 +28,8 @@ Use `{SKILL_DIR}` for this skill directory and `{WORKSPACE}` for the project roo
 
 For file input, default to `<file-stem>-sdd`; on basename collision, ask the user or disambiguate with an explicit slug. For conversational input, use `YYYY-MM-DD-<short-name>-sdd`. Honor explicit user paths. Never modify `requirements/`, `wiki/`, `sources/`, or `souces/`.
 
+**Output language.** Write the deliverable and the prose of process artifacts in the workspace language declared in `workspace.yaml` (`language:`, default `zh`), unless the user asks for another language. Follow the active template for document structure and headings — a localized deployment replaces `templates/` with a template in its own language. Never translate or alter evidence anchors, IDs, code identifiers, API paths, field/table/schema names, configuration keys, or quoted source; reproduce them verbatim so they stay greppable against the corpus.
+
 Load resources only when entering the corresponding node:
 
 - Requirement discovery, selection, and resume: `references/requirement-intake.md`
@@ -90,11 +92,9 @@ Read the active `templates/sdd.md` directly. Treat the entire `templates/` direc
 
 Read `references/project-discovery.md`. **Mandatory first action:** run `ba2md discover --json` when the CLI is available; otherwise read `workspace.yaml` and list one level of `sources/` and `wiki/`. Build the managed-entry inventory and expand nested wiki logical projects **before** any `grep`/`Glob`/content search.
 
-Never enumerate projects by searching `sources/**` or `wiki/**`, and never conclude “no wiki” from an empty `wiki/*.md` match when `wiki/<id>/` directories exist. Source roots must be concrete paths such as `sources/<id>` or `wiki/<id>/<project>`, never bare `wiki/` or `sources/`.
+Source roots are always concrete paths (`sources/<id>`, `wiki/<id>/<project>`), never bare `sources/` or `wiki/`. Wiki and sources are independent collections: the wiki positions the corpus (identity, ownership, boundaries, terminology), `sources/` holds the code. Read the requirement-relevant wiki, then **select the source(s) the requirement touches** — never force a one-to-one wiki↔source pair; a source may be selected with no wiki coverage (record a discovery GAP).
 
-Wiki and sources are independent collections. The wiki is a discovery/positioning digest that spans the source corpus; `sources/` is the corpus of codebases. Read the wiki to build a map of the corpus (identities, ownership, boundaries, terminology), then **select the source project(s) the requirement touches** — not a one-to-one wiki↔source pair. A source may be selected with no wiki coverage (record a discovery GAP); one wiki entry may inform several sources.
-
-**Source ID = the uppercased managed source id; one selected source is one research scope unit.** Record every managed source id in the Candidate Source Impact Map as `select` or `exclude` with a reason, and reference every managed wiki entry via a `wiki/<id>` path. Select the smallest covering set. Expand discovery when ownership, upstream/downstream boundaries, data ownership, events, authorization, jobs, or operations dependencies remain unresolved. Ask the user only when requirement meaning or materially different source-selection choices genuinely block progress.
+**Source ID = the uppercased managed source id; one selected source is one research scope unit.** Selection is **progressive**: a source enters scope when you write evidence anchored under `sources/<id>` — there is no upfront step that pre-selects or pre-excludes every managed source, and the evidence registry (not any selection table) is the source of truth for scope. Expand as ownership, boundaries, or data/event/authorization/job/operations dependencies surface; ask the user only when requirement meaning or a materially different selection genuinely blocks progress.
 
 **Workflow at a glance:** read the requirement → read the wiki → select relevant sources → write the research plan → dispatch sub-agents to deep-research each source → verify and reconcile their `FOUND` candidates → synthesize the SDD.
 
@@ -168,6 +168,7 @@ Create `{slug}.md`, set `status: final`, and run final validation only after the
 ## Mandatory Rules
 
 - Treat `requirements/` as read-only by default. Index first, read full files on demand, and keep each queued requirement unit independent.
+- Write deliverable and artifact prose in the `workspace.yaml` language (default `zh`); keep evidence anchors, IDs, and code identifiers verbatim.
 - Start Project Discovery from `ba2md discover --json` / `workspace.yaml`; forbid using workspace-wide `sources/**` or `wiki/*` searches to decide project count or wiki presence.
 - Treat the active `templates/` directory as the sole document-structure authority; do not research, generate, or validate absent sections.
 - Use wiki for discovery and summary only; it cannot independently prove precise implementation.

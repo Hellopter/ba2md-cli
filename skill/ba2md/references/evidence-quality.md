@@ -88,10 +88,12 @@ For a multi-source requirement, correctness is not the sum of isolated source fi
 - identify the actual data owner for every changed persisted domain;
 - identify relevant consumers for every changed event or shared contract;
 - record authorization, tenancy, configuration, deployment, alerting, and audit ownership where relevant;
-- return to project discovery when source evidence reveals an unaccounted source, boundary, or owner;
+- when source evidence reveals an unaccounted source, boundary, or owner, add that source to scope by researching it and writing evidence under `sources/<id>` (progressive selection — see `references/project-discovery.md`);
 - record compatibility evidence for a strongly related source that is excluded from the impact set.
 
-Do not mark the impact set closed merely because each selected source was researched independently. It is closed only when requirement coverage and material cross-source edges are explained end to end or represented by explicit GAP/CONFLICT records.
+The set of in-scope sources is exactly the set of distinct `sources/<id>` roots appearing in `evidence-registry.md`.
+
+Do not mark the impact set closed merely because each source was researched independently. It is closed only when requirement coverage and material cross-source edges are explained end to end or represented by explicit GAP/CONFLICT records. The mechanical validator does **not** judge closure — that is a semantic-gate responsibility; the validator only checks that the evidence anchors you did write are real.
 
 ## Gate Findings
 

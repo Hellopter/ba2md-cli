@@ -11,8 +11,6 @@ ID_RE = re.compile(r"\b([RFSPDACGQ]-[A-Z0-9][A-Z0-9-]*-\d{3})\b")
 ANCHOR_RE = re.compile(r"`?([^`|]+?):(\d+)(?:-(\d+))?`?")
 PLACEHOLDER_RE = re.compile(r"TODO|TBD|<design-title>|<feature-name>|<one-line|YYYY-MM-DD|<optional>", re.IGNORECASE)
 BARE_COLLECTION_ROOT_RE = re.compile(r"^(?:\.?/)?(?:sources|wiki|souces)/?$", re.IGNORECASE)
-MANAGED_SOURCE_PATH_RE = re.compile(r"(?:^|[\s`])((?:sources|souces)/([^/`\s|]+))", re.IGNORECASE)
-MANAGED_WIKI_PATH_RE = re.compile(r"(?:^|[\s`])(wiki/([^/`\s|]+))", re.IGNORECASE)
 
 
 def split_row(line):
@@ -130,13 +128,13 @@ def load_registry(product_dir, workspace, errors, warnings):
     }) or []
 
     if evidence_rows is None:
-        errors.append("evidence-registry.md is missing the Evidence Records table")
+        warnings.append("evidence-registry.md has no Evidence Records table (no evidence written yet)")
         evidence_rows = []
     if claim_rows is None:
-        errors.append("evidence-registry.md is missing the Design Claims table")
+        warnings.append("evidence-registry.md has no Design Claims table (no claims yet; valid in draft)")
         claim_rows = []
     if issue_rows is None:
-        errors.append("evidence-registry.md is missing the Issue Register table")
+        warnings.append("evidence-registry.md has no Issue Register table (no GAP/CONFLICT yet; valid in draft)")
         issue_rows = []
 
     evidence, claims, issues, decisions, questions = {}, {}, {}, {}, set()
@@ -221,44 +219,6 @@ def load_registry(product_dir, workspace, errors, warnings):
     return evidence, claims, issues, decisions, questions
 
 
-def parse_top_level_map_keys(text, section_name):
-    """Return keys of a top-level YAML map section without requiring PyYAML."""
-    lines = text.splitlines()
-    keys = []
-    in_section = False
-    section_indent = None
-    for raw in lines:
-        if not raw.strip() or raw.lstrip().startswith("#"):
-            continue
-        indent = len(raw) - len(raw.lstrip(" "))
-        stripped = raw.strip()
-        if not in_section:
-            if re.fullmatch(rf"{re.escape(section_name)}\s*:\s*(?:#.*)?", stripped):
-                in_section = True
-                section_indent = indent
-            continue
-        if indent <= section_indent:
-            break
-        # Immediate map keys only (section indent + 2 spaces is the workspace.yaml style).
-        if indent == section_indent + 2 and re.match(r"^[A-Za-z0-9._-]+\s*:", stripped):
-            key = stripped.split(":", 1)[0].strip()
-            if key not in keys:
-                keys.append(key)
-    return keys
-
-
-def load_workspace_registry(workspace):
-    config_path = Path(workspace) / "workspace.yaml"
-    if not config_path.is_file():
-        return {"sources": [], "wiki": [], "present": False}
-    text = config_path.read_text(encoding="utf-8")
-    return {
-        "sources": parse_top_level_map_keys(text, "sources"),
-        "wiki": parse_top_level_map_keys(text, "wiki"),
-        "present": True,
-    }
-
-
 def normalize_root_path(value):
     rel = (value or "").strip().strip("`").strip()
     rel = rel.replace("\\", "/")
@@ -272,38 +232,20 @@ def is_bare_collection_root(value):
     return bool(BARE_COLLECTION_ROOT_RE.fullmatch(rel))
 
 
-def managed_ids_mentioned(plan_text, selected_rows, impact_rows):
-    """Collect managed source/wiki ids referenced by concrete paths or source ids.
+def validate_plan(product_dir, workspace, errors, warnings):
+    """Validate research-plan.md structure.
 
-    Source ids come from `sources/<id>` paths and the Source ID column; wiki ids come
-    from `wiki/<id>` paths. A Source ID names a managed source project only — it does
-    NOT imply a wiki entry exists for it. Wiki and sources are independent collections,
-    so a source id is never also treated as a wiki id.
+    Source selection is progressive: an agent may start with one source and add more as
+    evidence surfaces them. A source is "selected" by writing evidence anchored under
+    sources/<id>. Therefore this function does NOT enforce that every workspace.yaml
+    source is SELECT/EXCLUDE-ed, nor that Selected Sources, Impact Map, or wiki entries
+    are pre-filled. It only checks structural soundness of whatever rows are present:
+    roots are not bare collection roots and exist when given, and requirement coverage
+    rows are well-formed.
     """
-    source_ids = set()
-    wiki_ids = set()
-    blobs = [plan_text]
-    for row in selected_rows:
-        blobs.extend([row.get("wiki", ""), row.get("sources", ""), row.get("source_id", "")])
-    for row in impact_rows:
-        blobs.extend(row.values())
-    joined = "\n".join(blobs)
-    for match in MANAGED_SOURCE_PATH_RE.finditer(joined):
-        source_ids.add(match.group(2))
-    for match in MANAGED_WIKI_PATH_RE.finditer(joined):
-        wiki_ids.add(match.group(2))
-    # A Source ID names a managed source project; it is not also a wiki id.
-    for row in list(selected_rows) + list(impact_rows):
-        source_id = (row.get("source_id") or "").strip().strip("`")
-        if source_id:
-            source_ids.add(source_id)
-    return source_ids, wiki_ids
-
-
-def validate_plan(product_dir, workspace, errors):
     path = product_dir / "research-plan.md"
     if not path.is_file():
-        errors.append(f"missing required artifact: {path}")
+        warnings.append("research-plan.md not found (run before deep research, not required for mid-flight validation)")
         return
     plan_text = path.read_text(encoding="utf-8")
     tables = parse_tables(plan_text)
@@ -312,141 +254,58 @@ def validate_plan(product_dir, workspace, errors):
         "sources": ("Sources root",),
         "wiki": ("Wiki coverage",),
     })
-    impact_rows = find_table(tables, {
-        "source_id": ("Source ID",),
-        "decision": ("Decision",),
-        "reason": ("Exclusion reason",),
-    })
     coverage_rows = find_table(tables, {
         "requirement_id": ("Requirement ID",),
         "owning_source": ("Owning source",),
         "status": ("Status",),
     })
-    boundary_rows = find_table(tables, {
-        "boundary_id": ("Boundary ID",),
-        "left_source": ("Caller/producer source",),
-        "right_source": ("Provider/consumer source",),
-        "status": ("Status",),
-    })
 
     if sources is None:
-        errors.append("research-plan.md is missing the Selected Sources table")
+        warnings.append("research-plan.md has no Selected Sources table (selection may not have started yet)")
         sources = []
-    if impact_rows is None:
-        errors.append("research-plan.md is missing the Candidate Source Impact Map table")
-        impact_rows = []
     if coverage_rows is None:
-        errors.append("research-plan.md is missing the Requirement-to-Source Coverage table")
+        warnings.append("research-plan.md has no Requirement-to-Source Coverage table")
         coverage_rows = []
-    if boundary_rows is None:
-        errors.append("research-plan.md is missing the Cross-Source Boundary Coverage table")
-        boundary_rows = []
 
-    selected_sources = set()
+    # Whatever selection rows exist must use concrete, existing roots — never bare
+    # collection roots. We do not require a minimum number of selected sources.
     for row in sources:
         source_id = row["source_id"].strip().strip("`")
         if not nonempty(source_id):
             continue
-        if source_id in selected_sources:
-            errors.append(f"duplicate selected source: {source_id}")
-            continue
-        selected_sources.add(source_id)
-        # Sources root is mandatory: must not be a bare collection root and must exist.
         rel = row["sources"].strip().strip("`")
+        if not nonempty(rel):
+            # No root declared yet for this row; skip — selection may be in progress.
+            continue
         if is_bare_collection_root(rel):
             errors.append(
                 f"source {source_id} uses bare collection root as Sources root: {rel} "
                 f"(use sources/<id>)"
             )
-        else:
-            path_value = Path(rel)
-            if not path_value.is_absolute():
-                path_value = workspace / path_value
-            if not path_value.exists():
-                errors.append(f"source {source_id} has a missing Sources root: {rel}")
-        # Wiki coverage is optional discovery context: only the bare-root guard runs,
-        # and only when a value is present. A source may have no wiki coverage.
+            continue
+        path_value = Path(rel)
+        if not path_value.is_absolute():
+            path_value = workspace / path_value
+        if not path_value.exists():
+            errors.append(f"source {source_id} has a missing Sources root: {rel}")
         wiki_rel = row["wiki"].strip().strip("`")
         if nonempty(wiki_rel) and is_bare_collection_root(wiki_rel):
             errors.append(
                 f"source {source_id} uses bare collection root as Wiki coverage: {wiki_rel} "
                 f"(use wiki/<id>[/<project>])"
             )
-    if not selected_sources:
-        errors.append("research-plan.md has no selected sources")
 
-    impact_sources = set()
-    for row in impact_rows:
-        source_id = row["source_id"].strip().strip("`")
-        if not nonempty(source_id):
-            continue
-        if source_id in impact_sources:
-            errors.append(f"duplicate candidate-impact source: {source_id}")
-            continue
-        impact_sources.add(source_id)
-        decision = row["decision"].strip().upper()
-        if decision not in {"SELECT", "EXCLUDE"}:
-            errors.append(f"candidate-impact source {source_id} has invalid Decision: {row['decision']}")
-        if decision == "EXCLUDE" and not nonempty(row["reason"]):
-            errors.append(f"excluded candidate-impact source {source_id} is missing an exclusion reason")
-    for source_id in sorted(selected_sources - impact_sources):
-        errors.append(f"selected source {source_id} is missing from the Candidate Source Impact Map")
-
-    covered_requirements = 0
+    # Requirement coverage rows, when present, must be well-formed. Owning source is
+    # informational only — it need not appear in any selection table, because selection
+    # is progressive and anchored by evidence.
     for row in coverage_rows:
         requirement_id = row["requirement_id"].strip().strip("`")
         if not nonempty(requirement_id):
             continue
-        covered_requirements += 1
         if not ID_RE.fullmatch(requirement_id) or not requirement_id.startswith("R-"):
             errors.append(f"invalid requirement coverage ID: {requirement_id}")
-        owning_source = row["owning_source"].strip().strip("`")
-        if not nonempty(owning_source):
-            errors.append(f"requirement coverage {requirement_id} is missing an owning source")
-        elif owning_source not in selected_sources:
-            errors.append(f"requirement coverage {requirement_id} references an unselected owning source: {owning_source}")
         if not nonempty(row["status"]):
             errors.append(f"requirement coverage {requirement_id} is missing Status")
-    if not covered_requirements:
-        errors.append("research-plan.md has no requirement-to-source coverage rows")
-
-    seen_boundaries = set()
-    for row in boundary_rows:
-        boundary_id = row["boundary_id"].strip().strip("`")
-        if not nonempty(boundary_id):
-            continue
-        if boundary_id in seen_boundaries:
-            errors.append(f"duplicate cross-source boundary: {boundary_id}")
-            continue
-        seen_boundaries.add(boundary_id)
-        for endpoint, source_id in (("caller/producer", row["left_source"]), ("provider/consumer", row["right_source"])):
-            source_id = source_id.strip().strip("`")
-            if not nonempty(source_id):
-                errors.append(f"cross-source boundary {boundary_id} is missing the {endpoint} source")
-            elif source_id not in selected_sources:
-                errors.append(f"cross-source boundary {boundary_id} references an unselected {endpoint} source: {source_id}")
-        if not nonempty(row["status"]):
-            errors.append(f"cross-source boundary {boundary_id} is missing Status")
-
-    # Registry coverage: every managed source id must be explicitly selected or excluded
-    # in the Candidate Source Impact Map; every managed wiki id must be referenced by a
-    # wiki/<id> path somewhere in the plan (wiki is discovery context, independent of any
-    # source). This universal rule replaces the old multi-source/one-pair special case.
-    registry = load_workspace_registry(workspace)
-    if registry["present"]:
-        _, mentioned_wiki = managed_ids_mentioned(plan_text, sources, impact_rows)
-        for source_id in registry["sources"]:
-            if source_id not in impact_sources:
-                errors.append(
-                    f"workspace.yaml source \"{source_id}\" is not covered in research-plan.md "
-                    f"(include it as SELECT or EXCLUDE with a reason in the Candidate Source Impact Map)"
-                )
-        for wiki_id in registry["wiki"]:
-            if wiki_id not in mentioned_wiki and f"wiki/{wiki_id}" not in plan_text:
-                errors.append(
-                    f"workspace.yaml wiki \"{wiki_id}\" is not covered in research-plan.md "
-                    f"(reference wiki/{wiki_id} in the plan, e.g. as Wiki coverage for a selected source)"
-                )
 
 
 def validate_briefs(product_dir, workspace, errors, warnings):
@@ -555,7 +414,7 @@ def main():
         errors.append(f"artifact directory does not exist: {product_dir}")
     else:
         if args.mode in {"plan", "briefs", "draft", "final", "all"}:
-            validate_plan(product_dir, workspace, errors)
+            validate_plan(product_dir, workspace, errors, warnings)
         if args.mode in {"briefs", "draft", "final", "all"}:
             validate_briefs(product_dir, workspace, errors, warnings)
         if args.mode in {"draft", "final", "all"}:
