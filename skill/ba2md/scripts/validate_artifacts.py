@@ -430,8 +430,16 @@ def has_content_review_signal(product_dir):
     match = CONTENT_REVIEW_RESULT_RE.search(text)
     if match and content_review_result_filled(match.group(1)):
         return True
-    if re.search(r"Content Review completed this gate\s*\|\s*Yes\b", text, re.IGNORECASE):
-        return True
+    completed = re.search(
+        r"Content Review completed this gate\s*\|\s*([^|\n]+)",
+        text,
+        re.IGNORECASE,
+    )
+    if completed:
+        # Require a pure Yes cell; reject unfilled template values like "Yes/No".
+        cell = completed.group(1).strip().strip("`*")
+        if re.fullmatch(r"Yes", cell, re.IGNORECASE):
+            return True
     return False
 
 

@@ -578,6 +578,93 @@ Done per F-SVCA-001.
     assert.doesNotMatch(result.stdout, /no Content Review signal/i);
   });
 
+  it('warns on unfilled Yes/No Content Review template row when no reviews exist', async () => {
+    const cwd = await makeTempDir();
+    const { root } = await initWorkspace('ws', cwd);
+    const a = path.join(cwd, 'svc-a');
+    await fsp.mkdir(a);
+    await writeFile(path.join(a, 'Foo.java'), 'class Foo {}\n');
+    await addSource(root, a, { id: 'svc-a' });
+    await makeRequirement(root);
+
+    const product = path.join(root, 'product', 'demo-sdd');
+    await fsp.mkdir(product, { recursive: true });
+    await writeFile(
+      path.join(product, 'gate-report.md'),
+      `# Quality Gate Report
+
+## 2. Content Review (primary)
+
+- Content Review result: PASS / PASS_WITH_DISCUSSION / RESEARCH_REQUIRED / REVISION_REQUIRED / RECONCILE_REQUIRED / BLOCKED
+
+| Metric | Result |
+|--------|--------|
+| Content Review completed this gate | Yes/No |
+| User-led review handoff authorized | Yes/No |
+`,
+    );
+    await writeFile(
+      path.join(product, 'evidence-registry.md'),
+      registryDoc({
+        evidence: [
+          evidenceRow({
+            id: 'F-SVCA-001',
+            label: 'FACT',
+            status: 'VERIFIED',
+            anchor: 'sources/svc-a/Foo.java:1',
+            verifiedBy: 'main agent',
+          }),
+        ],
+      }),
+    );
+    await writeFile(path.join(product, 'demo-sdd.draft.md'), draftDoc());
+
+    const result = runValidator(root, product, 'draft');
+    assert.equal(result.code, 0, result.stdout);
+    assert.match(result.stdout, /WARNING:.*Content Review signal/i);
+  });
+
+  it('accepts pure Yes Content Review completed cell as a valid signal', async () => {
+    const cwd = await makeTempDir();
+    const { root } = await initWorkspace('ws', cwd);
+    const a = path.join(cwd, 'svc-a');
+    await fsp.mkdir(a);
+    await writeFile(path.join(a, 'Foo.java'), 'class Foo {}\n');
+    await addSource(root, a, { id: 'svc-a' });
+    await makeRequirement(root);
+
+    const product = path.join(root, 'product', 'demo-sdd');
+    await fsp.mkdir(product, { recursive: true });
+    await writeFile(
+      path.join(product, 'gate-report.md'),
+      `# Quality Gate Report
+
+| Metric | Result |
+|--------|--------|
+| Content Review completed this gate | Yes |
+`,
+    );
+    await writeFile(
+      path.join(product, 'evidence-registry.md'),
+      registryDoc({
+        evidence: [
+          evidenceRow({
+            id: 'F-SVCA-001',
+            label: 'FACT',
+            status: 'VERIFIED',
+            anchor: 'sources/svc-a/Foo.java:1',
+            verifiedBy: 'main agent',
+          }),
+        ],
+      }),
+    );
+    await writeFile(path.join(product, 'demo-sdd.draft.md'), draftDoc());
+
+    const result = runValidator(root, product, 'draft');
+    assert.equal(result.code, 0, result.stdout);
+    assert.doesNotMatch(result.stdout, /no Content Review signal/i);
+  });
+
   it('still does not fail solely because Selected Sources is incomplete', async () => {
     const cwd = await makeTempDir();
     const { root } = await initWorkspace('ws', cwd);
