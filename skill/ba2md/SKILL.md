@@ -41,7 +41,8 @@ Load resources only when entering the corresponding node:
 - Evidence IDs, verification, Content Review checks/merge, quality gates, and final admission: `references/evidence-quality.md`
 - Writing inputs, stop conditions, and section depth: `references/design-writing.md`
 - Active template: `templates/sdd.md` and only the section constraints referenced by that active template
-- Process artifact templates: `assets/*.md`
+- Process artifact templates: `assets/*.md` (research brief, evidence registry, gate report)
+- Content review output shape: `assets/content-review-report-template.md`
 - Grilling (opt-in only, after Draft Review handoff): `grilling/SKILL.md` — loads `references/load-bearing.md`
 
 ## Evidence Vocabulary
@@ -121,7 +122,7 @@ An empty `briefs/` directory after Research is a failed run of this node, not a 
 
 Delegate bounded, independent fact-finding units to subagents when it materially helps and when each unit has clear inputs and outputs. Default small or single-project work to the main agent. Use one source per unit unless the unit is an explicitly named cross-source boundary. Subagents return `FOUND` candidates and never write the final SDD.
 
-Before dispatch, write each unit's brief with the Unit Contract filled (`product/<slug>/briefs/<unit-id>.md` from `assets/research-brief-template.md`). Every research unit — main-agent or subagent — updates only that brief file. Do not accept a subagent textual dump as a substitute for the on-disk brief. The main agent must reopen load-bearing raw anchors before promoting candidates to `VERIFIED` in `evidence-registry.md`. Reject or repair briefs with unanchored identifiers, wiki-only implementation claims, mixed current/target behavior, unpropagated dependency discoveries, or unjustified `ADD` recommendations.
+Before dispatch, write each unit's brief at `product/<slug>/briefs/<unit-id>.md` (copy shape from template `assets/research-brief-template.md`) with the Unit Contract filled. Every research unit — main-agent or subagent — updates only that brief file. Do not accept a subagent textual dump as a substitute for the on-disk brief. The main agent must reopen load-bearing raw anchors before promoting candidates to `VERIFIED` in `evidence-registry.md`. Reject or repair briefs with unanchored identifiers, wiki-only implementation claims, mixed current/target behavior, unpropagated dependency discoveries, or unjustified `ADD` recommendations.
 
 Build current-to-target decisions using `REUSE`, `MODIFY`, `EXTEND`, `ADD`, `DEPRECATE`, or `REMOVE`. Every `ADD` must name inspected existing seams and explain why they are insufficient.
 
@@ -154,7 +155,7 @@ python3 {SKILL_DIR}/scripts/validate_artifacts.py \
 
 Fix only `MECHANICAL` issues locally and re-precheck. Validator tripwires (empty `briefs/` after accepted units; missing Content Review signal on a draft) are presence checks only — not content review. A mechanical PASS never authorizes Draft Review handoff and never skips Content Review.
 
-**Layer B — Content Review (primary).** After a readable draft exists, run Content Review against the draft, registry, briefs, research-plan, and active template. Read `references/research-protocol.md` (Content Review modes, I/O, merge, convergence) and `references/evidence-quality.md` (checklists). Default intensity: **one comprehensive adversarial reviewer**. High-risk / Full Closure: up to **three lenses** (`evidence-consistency`, `e2e-completeness`, `adversarial-refuter`). Write each pass to `product/<slug>/reviews/content-review-<round>-<lens>.md` using `assets/content-review-report-template.md` and summarize in `gate-report.md` using `assets/gate-report-template.md`. Reviewers emit findings only; they cannot edit the draft, promote FACTs, choose business outcomes, or declare Final. Chat-only review is invalid for high-risk; default may have the main agent write the report file, but the file must exist before handoff.
+**Layer B — Content Review (primary).** After a readable draft exists, run Content Review against the draft, registry, briefs, research-plan, and active template. Read `references/research-protocol.md` (Content Review modes, I/O, merge, convergence) and `references/evidence-quality.md` (checklists). Default intensity: **one comprehensive adversarial reviewer** (still writes a report and can loop repair/rewrite before handoff — not a skip past Content Review). High-risk / Full Closure: up to **three lenses** (`evidence-consistency`, `e2e-completeness`, `adversarial-refuter`). Write each pass to `product/<slug>/reviews/content-review-<round>-<lens>.md` using `assets/content-review-report-template.md` and summarize in `gate-report.md` using `assets/gate-report-template.md`. Reviewers emit findings only; they cannot edit the draft, promote FACTs, choose business outcomes, or declare Final. Chat-only review is invalid for high-risk; default may have the main agent write the report file, but the file must exist before handoff.
 
 Classify Content Review results and route:
 
@@ -199,7 +200,7 @@ Create `{slug}.md`, set `status: final`, and run final validation only after the
 - Use wiki for discovery and summary only; it cannot independently prove precise implementation.
 - Select sources per requirement from wiki discovery; never force one-to-one wiki↔source pairing — a source may have no wiki coverage.
 - Use only `VERIFIED` FACTs to describe precise current identifiers or behavior.
-- Treat research briefs and gate-subagent output as inputs, not final evidence.
+- Treat research briefs and content-review findings as inputs, not final evidence.
 - Record unsupported content as GAP; never fabricate or ask the user to guess facts.
 - Prefer existing seams; every `ADD` needs existing-seam insufficiency evidence.
 - Verify both endpoints of material cross-source boundaries when they are known or suspected; record bounded GAPs when evidence cannot be found.

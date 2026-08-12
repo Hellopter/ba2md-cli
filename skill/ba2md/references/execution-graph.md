@@ -133,7 +133,8 @@ do not edit the draft, promote FACTs, choose business outcomes, or declare Final
 
 Default intensity: **one comprehensive adversarial reviewer** writing
 `reviews/content-review-<round>-<lens>.md` (or the main agent writing that file from a single
-reviewer response). High-risk / Full Closure: up to **three lenses**
+reviewer response). Default still requires the on-disk report and can loop repair/rewrite —
+it is not a skip past Content Review. High-risk / Full Closure: up to **three lenses**
 (`evidence-consistency`, `e2e-completeness`, `adversarial-refuter`). Detailed
 modes, I/O, multi-lens merge, and convergence caps live in
 `references/research-protocol.md` and `references/evidence-quality.md`; the structure here
@@ -258,7 +259,7 @@ Silence, vague assent, or “the backlog is empty” is not confirmation. Genera
 
 ## Parallelism
 
-The main agent owns discovery, acceptance, reconciliation, writing, routing, and user discussion. Delegate independent research units with disjoint source/concern scopes. Cap parallel subagents at four unless explicitly justified. Do not ask subagents to edit the final SDD.
+The main agent owns discovery, acceptance, reconciliation, writing, routing, and user discussion. Delegate independent research units with disjoint source/concern scopes. Cap parallel subagents at four (hard max). Do not ask subagents to edit the final SDD.
 
 - Max 4 ready units.
 - Main agent writes all Unit Contracts into brief files BEFORE any parallel dispatch.

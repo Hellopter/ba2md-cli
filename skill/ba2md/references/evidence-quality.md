@@ -120,7 +120,7 @@ Write every review pass to
 
 | Mode | When | Reviewers |
 |------|------|-----------|
-| Default | Ordinary single-source / low-risk | 1 comprehensive adversarial reviewer (findings only) |
+| Default | Ordinary single-source / low-risk | 1 comprehensive adversarial reviewer (findings only; still writes `reviews/content-review-*.md` and can loop repair before handoff) |
 | High-risk | Full Closure triggers (multi-service contracts, external APIs, schema migration, auth/tenancy/security, money/audit, async jobs, release/rollback, or explicit user request) | Up to 3 parallel lenses: `evidence-consistency`, `e2e-completeness`, `adversarial-refuter` |
 
 Default reviewer must actively try to break the draft (unsupported precise IDs, wiki/REQUIREMENT as current implementation, ADD without seam insufficiency, missing failure/auth/rollback when relevant, brief claims not traceable in registry/draft). Main agent adversarially spot-checks top findings (reopen anchors) before routing.

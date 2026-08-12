@@ -2,7 +2,7 @@
 
 Use research to find raw facts that make the SDD implementable. Research units organize investigation; they are not document sections. Briefs summarize investigation; they never replace raw evidence.
 
-Every completed research unit produces an on-disk brief at `product/<slug>/briefs/<unit-id>.md` from `assets/research-brief-template.md`. Tiny single-source work may use one consolidated brief; zero briefs after Research is a protocol failure.
+Every completed research unit produces an on-disk brief at `product/<slug>/briefs/<unit-id>.md` (copy shape from template `assets/research-brief-template.md`). Tiny single-source work may use one consolidated brief; zero briefs after Research is a protocol failure.
 
 ## Research Plan Contract
 
@@ -105,7 +105,7 @@ Split by disjoint `source × concern`, such as:
 
 Use a cross-source unit only for an explicitly named integration boundary. State caller source, provider source, ownership, compatibility, and failure responsibility.
 
-## When a Brief Is Mandatory
+## Brief Requirement (Always On)
 
 **Every completed research unit produces a brief file.** Main-agent and subagent units both write `product/<slug>/briefs/<unit-id>.md`. Tiny single-source work still produces **one** consolidated brief, not zero. Empty `briefs/` after Research is a protocol failure. The canonical `evidence-registry.md` is always required in addition to briefs.
 
@@ -152,7 +152,7 @@ Give each subagent the Research Unit I/O Contract above, plus:
 - bounded questions and expected evidence types;
 - only relevant template constraints, never every section file;
 - the Java test exclusion: `test.java`, `src/test/`, `*Test.java`, `*Tests.java`, and `*IT.java`;
-- absolute path to the pre-written brief file (`product/<slug>/briefs/<unit-id>.md` from `assets/research-brief-template.md`);
+- absolute path to the pre-written brief file at `product/<slug>/briefs/<unit-id>.md` (template: `assets/research-brief-template.md`);
 - instruction to obey repository-local `AGENTS.md` and use context-graph tools before grep when available;
 - instruction to search only under the assigned source root and any cited wiki pages; do not run workspace-wide `sources/**` or `wiki/**` enumeration;
 - instruction to report contrary, missing, and insufficient evidence;
@@ -222,7 +222,7 @@ Detailed checklists live in `references/evidence-quality.md`. Intensity, I/O, me
 
 #### Default (ordinary single-source / low-risk)
 
-1. One comprehensive content reviewer (findings only).
+1. One comprehensive content reviewer (findings only). Default intensity is still a full Content Review pass: write the report file, route findings, and loop repair/rewrite when required — not a skip to Draft Review.
 2. Reviewer must actively try to break the draft:
    - unsupported precise identifiers
    - wiki/REQUIREMENT used as current implementation
