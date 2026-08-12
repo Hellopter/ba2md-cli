@@ -70,7 +70,9 @@ Build a lightweight index without loading every page in full. Capture:
 
 ## 2. Read Wiki Entry Pages for Discovery
 
-Read the wiki **on demand, driven by the requirement** — not the whole wiki up front. The flow is: read the requirement → read the wiki pages whose titles/headings/domain terms match the requirement → from those pages learn which sources exist and which likely matter → start researching the most relevant one.
+Read the wiki on demand, driven by the requirement — not the whole wiki up front. The flow is: read the requirement → read the wiki pages whose titles/headings/domain terms match the requirement → from those pages learn which sources exist and which likely matter → start researching the most relevant one.
+
+**How deeply to read is governed by page role, not by length.** Navigation pages (`index.md`, `README.md`) are skimmed for the module map; total-view pages (`overview*`, `introduction*`, `architecture*`, system-context, domain-index) are read **in full** to build the system mental model; detail pages are pulled on demand. The full reading-depth tiers, the two consumption modes (understand/lock-scope vs evidence-collection), and the trust boundary ("read deeply as your map, cite as a SUMMARY") are defined in `references/wiki-consumption.md` — read it. Under-reading the total-view tier is the common failure mode that makes the wiki feel useless; the wiki pays for itself by narrowing and de-risking later source research.
 
 A wiki project is worth reading when any of these apply:
 
@@ -80,7 +82,7 @@ A wiki project is worth reading when any of these apply:
 - source reconnaissance later points back to it;
 - it is the only registered wiki entry (still reference it via `wiki/<id>`).
 
-For each plausible wiki project, inspect in this order when present:
+For each plausible wiki project, inspect in this order when present (navigation pages skimmed; total-view pages read in full — see `references/wiki-consumption.md`):
 
 1. root `index.md`, `README.md`, or navigation index;
 2. primary `overview*`, `introduction*`, `architecture*`, system-context, or domain-index pages;
@@ -99,7 +101,7 @@ Capture only:
 - likely source repository or package names;
 - requirement matches, mismatches, and unresolved ownership.
 
-Use wiki only for SUMMARY records and search hypotheses. Do not treat class names, fields, routes, schemas, configuration, or operational claims copied from wiki as exact FACTs.
+Wiki content is `SUMMARY`: record search hypotheses and ownership here, but verify precise identifiers against `sources/<id>` before any becomes a `FACT`. This is a citation rule, not a reason to skim — read total-view pages fully so you know where to dig. (`references/wiki-consumption.md` covers the full trust boundary.)
 
 ## 3. Select Sources Progressively
 

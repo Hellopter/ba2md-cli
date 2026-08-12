@@ -34,6 +34,7 @@ Load resources only when entering the corresponding node:
 
 - Requirement discovery, selection, and resume: `references/requirement-intake.md`
 - Source discovery and selection: `references/project-discovery.md`
+- How to read the wiki (page roles, reading depth, trust boundary): `references/wiki-consumption.md`
 - Nodes, transitions, repair research, and user-led Draft Review: `references/execution-graph.md`
 - Research plan, subagents, briefs, and acceptance: `references/research-protocol.md`
 - Evidence IDs, verification, quality gates, and final admission: `references/evidence-quality.md`
@@ -92,7 +93,7 @@ Read the active `templates/sdd.md` directly. Treat the entire `templates/` direc
 
 Read `references/project-discovery.md`. **Mandatory first action:** run `ba2md discover --json` when the CLI is available; otherwise read `workspace.yaml` and list one level of `sources/` and `wiki/`. Build the managed-entry inventory and expand nested wiki logical projects **before** any `grep`/`Glob`/content search.
 
-Source roots are always concrete paths (`sources/<id>`, `wiki/<id>/<project>`), never bare `sources/` or `wiki/`. Wiki and sources are independent collections: the wiki positions the corpus (identity, ownership, boundaries, terminology), `sources/` holds the code. Read the requirement-relevant wiki, then **select the source(s) the requirement touches** — never force a one-to-one wiki↔source pair; a source may be selected with no wiki coverage (record a discovery GAP).
+Source roots are always concrete paths (`sources/<id>`, `wiki/<id>/<project>`), never bare `sources/` or `wiki/`. Wiki and sources are independent collections: the wiki positions the corpus (identity, ownership, boundaries, terminology), `sources/` holds the code. Read the requirement-relevant wiki, then **select the source(s) the requirement touches** — never force a one-to-one wiki↔source pair; a source may be selected with no wiki coverage (record a discovery GAP). Read `references/wiki-consumption.md` for how deeply to read each wiki page — navigation pages are skimmed, total-view pages (`overview*`/`architecture*`) are read in full to build the system mental model before source research; reading deeply is never a trust violation, only citing wiki text as a precise FACT is.
 
 **Source ID = the uppercased managed source id; one selected source is one research scope unit.** Selection is **progressive**: a source enters scope when you write evidence anchored under `sources/<id>` — there is no upfront step that pre-selects or pre-excludes every managed source, and the evidence registry (not any selection table) is the source of truth for scope. Expand as ownership, boundaries, or data/event/authorization/job/operations dependencies surface; ask the user only when requirement meaning or a materially different selection genuinely blocks progress.
 
