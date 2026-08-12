@@ -11,6 +11,20 @@ ID_RE = re.compile(r"\b([RFSPDACGQ]-[A-Z0-9][A-Z0-9-]*-\d{3})\b")
 ANCHOR_RE = re.compile(r"`?([^`|]+?):(\d+)(?:-(\d+))?`?")
 PLACEHOLDER_RE = re.compile(r"TODO|TBD|<design-title>|<feature-name>|<one-line|YYYY-MM-DD|<optional>", re.IGNORECASE)
 BARE_COLLECTION_ROOT_RE = re.compile(r"^(?:\.?/)?(?:sources|wiki|souces)/?$", re.IGNORECASE)
+DONE_STATUS_RE = re.compile(
+    r"^(done|accepted|complete|ready[-\s]?for[-\s]?acceptance|closed)$",
+    re.IGNORECASE,
+)
+ACCEPTED_UNITS_RE = re.compile(r"Accepted research units:\s*(.+)$", re.IGNORECASE | re.MULTILINE)
+CONTENT_REVIEW_RESULT_RE = re.compile(r"Content Review result:\s*(.+)$", re.IGNORECASE | re.MULTILINE)
+CONTENT_REVIEW_RESULTS = {
+    "PASS",
+    "PASS_WITH_DISCUSSION",
+    "RESEARCH_REQUIRED",
+    "REVISION_REQUIRED",
+    "RECONCILE_REQUIRED",
+    "BLOCKED",
+}
 
 
 def split_row(line):
@@ -340,6 +354,103 @@ def validate_briefs(product_dir, workspace, errors, warnings):
                     errors.append(f"{path.name}: {item_id}: {anchor_error}: {row['anchor']}")
 
 
+def list_brief_files(product_dir):
+    brief_dir = product_dir / "briefs"
+    if not brief_dir.is_dir():
+        return []
+    return sorted(brief_dir.glob("*.md"))
+
+
+def accepted_units_require_briefs(plan_text):
+    """True when Execution State or Research Units imply accepted/done research."""
+    match = ACCEPTED_UNITS_RE.search(plan_text or "")
+    if match:
+        value = match.group(1).strip().strip("`")
+        if nonempty(value):
+            if re.fullmatch(r"\d+", value):
+                if int(value) > 0:
+                    return True
+            else:
+                return True
+
+    tables = parse_tables(plan_text or "")
+    units = find_table(tables, {
+        "unit_id": ("Unit ID",),
+        "status": ("Status",),
+    })
+    if not units:
+        return False
+    for row in units:
+        unit_id = row["unit_id"].strip().strip("`")
+        status = row["status"].strip().strip("`")
+        if not nonempty(unit_id) and not nonempty(status):
+            continue
+        if DONE_STATUS_RE.fullmatch(status or ""):
+            return True
+    return False
+
+
+def validate_accepted_briefs_presence(product_dir, errors):
+    """Tripwire only: accepted/done research units must leave on-disk briefs/*.md.
+
+    This is not content review — it only checks that brief files exist when the
+    plan claims research was accepted or completed.
+    """
+    plan_path = product_dir / "research-plan.md"
+    if not plan_path.is_file():
+        return
+    plan_text = plan_path.read_text(encoding="utf-8")
+    if not accepted_units_require_briefs(plan_text):
+        return
+    if list_brief_files(product_dir):
+        return
+    errors.append("Research units accepted but briefs/ is empty")
+
+
+def content_review_result_filled(raw):
+    value = (raw or "").strip()
+    if not value or value.startswith("<"):
+        return False
+    # Unfilled template lines list every option joined by " / ".
+    if " / " in value and sum(1 for token in CONTENT_REVIEW_RESULTS if token in value.upper()) >= 2:
+        return False
+    token = re.split(r"[\s,/|]+", value)[0].strip().strip("`*").upper()
+    return token in CONTENT_REVIEW_RESULTS
+
+
+def has_content_review_signal(product_dir):
+    reviews_dir = product_dir / "reviews"
+    if reviews_dir.is_dir() and any(reviews_dir.rglob("*.md")):
+        return True
+
+    gate_path = product_dir / "gate-report.md"
+    if not gate_path.is_file():
+        return False
+    text = gate_path.read_text(encoding="utf-8")
+    match = CONTENT_REVIEW_RESULT_RE.search(text)
+    if match and content_review_result_filled(match.group(1)):
+        return True
+    if re.search(r"Content Review completed this gate\s*\|\s*Yes\b", text, re.IGNORECASE):
+        return True
+    return False
+
+
+def validate_content_review_presence(product_dir, document_path, warnings):
+    """Tripwire only: a readable draft should leave a Content Review signal.
+
+    WARNING (not ERROR) when missing — presence of reviews/*.md or a filled
+    gate-report Content Review result. Does not judge review quality.
+    """
+    if not document_path or not document_path.is_file():
+        return
+    if has_content_review_signal(product_dir):
+        return
+    warnings.append(
+        "draft exists but no Content Review signal found "
+        "(missing reviews/*.md and gate-report Content Review result)"
+    )
+
+
 def validate_document(path, mode, evidence, claims, issues, decisions, questions, errors):
     if not path or not path.is_file():
         errors.append(f"missing {mode} document: {path}")
@@ -417,11 +528,17 @@ def main():
             validate_plan(product_dir, workspace, errors, warnings)
         if args.mode in {"briefs", "draft", "final", "all"}:
             validate_briefs(product_dir, workspace, errors, warnings)
+        # Tripwires (not content review): empty briefs after accepted research;
+        # missing Content Review signal once a draft exists.
+        if args.mode in {"draft", "briefs", "all"}:
+            validate_accepted_briefs_presence(product_dir, errors)
         if args.mode in {"draft", "final", "all"}:
             evidence, claims, issues, decisions, questions = load_registry(product_dir, workspace, errors, warnings)
             mode = args.mode if args.mode in {"draft", "final"} else "draft"
             document = args.document.resolve() if args.document else discover_doc(product_dir, ".draft.md" if mode == "draft" else ".md")
             validate_document(document, mode, evidence, claims, issues, decisions, questions, errors)
+            if args.mode in {"draft", "all"}:
+                validate_content_review_presence(product_dir, document, warnings)
 
     for warning in warnings:
         print(f"WARNING: {warning}")

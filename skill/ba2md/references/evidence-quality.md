@@ -101,6 +101,8 @@ Do not mark the impact set closed merely because each source was researched inde
 
 `scripts/validate_artifacts.py` checks artifact shape, IDs, anchor existence,
 placeholders, and finalization blockers that are mechanically knowable.
+It also emits tripwires only (empty `briefs/` after accepted research; missing
+Content Review signal when a draft exists) — these are presence checks, not content review.
 It does not judge design quality, completeness of reasoning, seam sufficiency
 beyond simple ADD field presence, or whether the draft is implementable.
 Content Review is the primary Quality Gate. A mechanical PASS with no content

@@ -365,4 +365,273 @@ Done per F-SVCA-001.
     assert.notEqual(result.code, 0);
     assert.match(result.stdout, /G-FEAT-001/i);
   });
+
+  it('fails draft when accepted research units > 0 and briefs/ is empty', async () => {
+    const cwd = await makeTempDir();
+    const { root } = await initWorkspace('ws', cwd);
+    const a = path.join(cwd, 'svc-a');
+    await fsp.mkdir(a);
+    await writeFile(path.join(a, 'Foo.java'), 'class Foo {}\n');
+    await addSource(root, a, { id: 'svc-a' });
+    await makeRequirement(root);
+
+    const product = path.join(root, 'product', 'demo-sdd');
+    await fsp.mkdir(product, { recursive: true });
+    await writeFile(
+      path.join(product, 'research-plan.md'),
+      `# Research Plan
+
+## Execution State
+- Accepted research units: 1
+`,
+    );
+    await writeFile(
+      path.join(product, 'evidence-registry.md'),
+      registryDoc({
+        evidence: [
+          evidenceRow({
+            id: 'F-SVCA-001',
+            label: 'FACT',
+            status: 'VERIFIED',
+            anchor: 'sources/svc-a/Foo.java:1',
+            verifiedBy: 'main agent',
+          }),
+        ],
+      }),
+    );
+    await writeFile(path.join(product, 'demo-sdd.draft.md'), draftDoc());
+
+    const result = runValidator(root, product, 'draft');
+    assert.notEqual(result.code, 0, result.stdout);
+    assert.match(result.stdout, /Research units accepted but briefs\/ is empty/i);
+  });
+
+  it('fails draft when Research Units table has done-like status and briefs/ is empty', async () => {
+    const cwd = await makeTempDir();
+    const { root } = await initWorkspace('ws', cwd);
+    const a = path.join(cwd, 'svc-a');
+    await fsp.mkdir(a);
+    await writeFile(path.join(a, 'Foo.java'), 'class Foo {}\n');
+    await addSource(root, a, { id: 'svc-a' });
+    await makeRequirement(root);
+
+    const product = path.join(root, 'product', 'demo-sdd');
+    await fsp.mkdir(product, { recursive: true });
+    await writeFile(
+      path.join(product, 'research-plan.md'),
+      `# Research Plan
+
+## Research Units
+| Unit ID | Trigger | Source ID / Boundary | Concern | Questions | Expected facts | Brief path | Dependencies | Status |
+|---------|---------|----------------------|---------|-----------|----------------|------------|--------------|--------|
+| U-AUTH-001 | req | svc-a | auth | how? | tokens | \`briefs/U-AUTH-001.md\` | | ready-for-acceptance |
+`,
+    );
+    await writeFile(
+      path.join(product, 'evidence-registry.md'),
+      registryDoc({
+        evidence: [
+          evidenceRow({
+            id: 'F-SVCA-001',
+            label: 'FACT',
+            status: 'VERIFIED',
+            anchor: 'sources/svc-a/Foo.java:1',
+            verifiedBy: 'main agent',
+          }),
+        ],
+      }),
+    );
+    await writeFile(path.join(product, 'demo-sdd.draft.md'), draftDoc());
+
+    const result = runValidator(root, product, 'draft');
+    assert.notEqual(result.code, 0, result.stdout);
+    assert.match(result.stdout, /Research units accepted but briefs\/ is empty/i);
+  });
+
+  it('passes draft when accepted units > 0 and one brief exists', async () => {
+    const cwd = await makeTempDir();
+    const { root } = await initWorkspace('ws', cwd);
+    const a = path.join(cwd, 'svc-a');
+    await fsp.mkdir(a);
+    await writeFile(path.join(a, 'Foo.java'), 'class Foo {}\n');
+    await addSource(root, a, { id: 'svc-a' });
+    await makeRequirement(root);
+
+    const product = path.join(root, 'product', 'demo-sdd');
+    await fsp.mkdir(path.join(product, 'briefs'), { recursive: true });
+    await fsp.mkdir(path.join(product, 'reviews'), { recursive: true });
+    await writeFile(
+      path.join(product, 'research-plan.md'),
+      `# Research Plan
+
+## Execution State
+- Accepted research units: 1
+`,
+    );
+    await writeFile(
+      path.join(product, 'briefs', 'U-AUTH-001.md'),
+      `# Brief U-AUTH-001
+
+## Evidence Candidates
+| Candidate ID | Label | Status | Exact raw anchor |
+|--------------|-------|--------|------------------|
+`,
+    );
+    await writeFile(
+      path.join(product, 'reviews', 'content-review-1-comprehensive.md'),
+      `# Content Review Report
+
+- Content Review result: PASS
+`,
+    );
+    await writeFile(
+      path.join(product, 'evidence-registry.md'),
+      registryDoc({
+        evidence: [
+          evidenceRow({
+            id: 'F-SVCA-001',
+            label: 'FACT',
+            status: 'VERIFIED',
+            anchor: 'sources/svc-a/Foo.java:1',
+            verifiedBy: 'main agent',
+          }),
+        ],
+      }),
+    );
+    await writeFile(path.join(product, 'demo-sdd.draft.md'), draftDoc());
+
+    const result = runValidator(root, product, 'draft');
+    assert.equal(result.code, 0, result.stdout);
+    assert.match(result.stdout, /PASSED/);
+    assert.doesNotMatch(result.stdout, /briefs\/ is empty/i);
+  });
+
+  it('warns but passes when draft exists without Content Review signal', async () => {
+    const cwd = await makeTempDir();
+    const { root } = await initWorkspace('ws', cwd);
+    const a = path.join(cwd, 'svc-a');
+    await fsp.mkdir(a);
+    await writeFile(path.join(a, 'Foo.java'), 'class Foo {}\n');
+    await addSource(root, a, { id: 'svc-a' });
+    await makeRequirement(root);
+
+    const product = path.join(root, 'product', 'demo-sdd');
+    await fsp.mkdir(product, { recursive: true });
+    await writeFile(
+      path.join(product, 'evidence-registry.md'),
+      registryDoc({
+        evidence: [
+          evidenceRow({
+            id: 'F-SVCA-001',
+            label: 'FACT',
+            status: 'VERIFIED',
+            anchor: 'sources/svc-a/Foo.java:1',
+            verifiedBy: 'main agent',
+          }),
+        ],
+      }),
+    );
+    await writeFile(path.join(product, 'demo-sdd.draft.md'), draftDoc());
+
+    const result = runValidator(root, product, 'draft');
+    assert.equal(result.code, 0, result.stdout);
+    assert.match(result.stdout, /WARNING:.*Content Review signal/i);
+    assert.match(result.stdout, /PASSED/);
+  });
+
+  it('does not warn about Content Review when gate-report has a filled result', async () => {
+    const cwd = await makeTempDir();
+    const { root } = await initWorkspace('ws', cwd);
+    const a = path.join(cwd, 'svc-a');
+    await fsp.mkdir(a);
+    await writeFile(path.join(a, 'Foo.java'), 'class Foo {}\n');
+    await addSource(root, a, { id: 'svc-a' });
+    await makeRequirement(root);
+
+    const product = path.join(root, 'product', 'demo-sdd');
+    await fsp.mkdir(product, { recursive: true });
+    await writeFile(
+      path.join(product, 'gate-report.md'),
+      `# Quality Gate Report
+
+- Content Review result: PASS_WITH_DISCUSSION
+`,
+    );
+    await writeFile(
+      path.join(product, 'evidence-registry.md'),
+      registryDoc({
+        evidence: [
+          evidenceRow({
+            id: 'F-SVCA-001',
+            label: 'FACT',
+            status: 'VERIFIED',
+            anchor: 'sources/svc-a/Foo.java:1',
+            verifiedBy: 'main agent',
+          }),
+        ],
+      }),
+    );
+    await writeFile(path.join(product, 'demo-sdd.draft.md'), draftDoc());
+
+    const result = runValidator(root, product, 'draft');
+    assert.equal(result.code, 0, result.stdout);
+    assert.doesNotMatch(result.stdout, /no Content Review signal/i);
+  });
+
+  it('still does not fail solely because Selected Sources is incomplete', async () => {
+    const cwd = await makeTempDir();
+    const { root } = await initWorkspace('ws', cwd);
+    const a = path.join(cwd, 'svc-a');
+    const b = path.join(cwd, 'svc-b');
+    await fsp.mkdir(a);
+    await fsp.mkdir(b);
+    await writeFile(path.join(a, 'Foo.java'), 'class Foo {}\n');
+    await writeFile(path.join(b, 'Other.java'), 'class Other {}\n');
+    await addSource(root, a, { id: 'svc-a' });
+    await addSource(root, b, { id: 'svc-b' });
+    await makeRequirement(root);
+
+    const product = path.join(root, 'product', 'demo-sdd');
+    await fsp.mkdir(path.join(product, 'reviews'), { recursive: true });
+    await writeFile(
+      path.join(product, 'research-plan.md'),
+      `# Research Plan
+
+## Selected Sources
+| Source ID | Sources root | Wiki coverage | Role in requirement | Selection basis |
+|-----------|--------------|---------------|---------------------|-----------------|
+| svc-a | sources/svc-a | | owner | starting point |
+
+## Execution State
+- Accepted research units: 0
+`,
+    );
+    await writeFile(
+      path.join(product, 'reviews', 'content-review-1-comprehensive.md'),
+      `# Content Review
+
+- Content Review result: PASS
+`,
+    );
+    await writeFile(
+      path.join(product, 'evidence-registry.md'),
+      registryDoc({
+        evidence: [
+          evidenceRow({
+            id: 'F-SVCA-001',
+            label: 'FACT',
+            status: 'VERIFIED',
+            anchor: 'sources/svc-a/Foo.java:1',
+            verifiedBy: 'main agent',
+          }),
+        ],
+      }),
+    );
+    await writeFile(path.join(product, 'demo-sdd.draft.md'), draftDoc());
+
+    const result = runValidator(root, product, 'draft');
+    assert.equal(result.code, 0, result.stdout);
+    assert.doesNotMatch(result.stdout, /svc-b/);
+    assert.doesNotMatch(result.stdout, /unmentioned|incomplete selection|must select/i);
+  });
 });

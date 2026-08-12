@@ -152,7 +152,7 @@ python3 {SKILL_DIR}/scripts/validate_artifacts.py \
   --mode draft
 ```
 
-Fix only `MECHANICAL` issues locally and re-precheck. A mechanical PASS never authorizes Draft Review handoff and never skips Content Review.
+Fix only `MECHANICAL` issues locally and re-precheck. Validator tripwires (empty `briefs/` after accepted units; missing Content Review signal on a draft) are presence checks only — not content review. A mechanical PASS never authorizes Draft Review handoff and never skips Content Review.
 
 **Layer B — Content Review (primary).** After a readable draft exists, run Content Review against the draft, registry, briefs, research-plan, and active template. Read `references/research-protocol.md` (Content Review modes, I/O, merge, convergence) and `references/evidence-quality.md` (checklists). Default intensity: **one comprehensive adversarial reviewer**. High-risk / Full Closure: up to **three lenses** (`evidence-consistency`, `e2e-completeness`, `adversarial-refuter`). Write each pass to `product/<slug>/reviews/content-review-<round>-<lens>.md` using `assets/content-review-report-template.md` and summarize in `gate-report.md` using `assets/gate-report-template.md`. Reviewers emit findings only; they cannot edit the draft, promote FACTs, choose business outcomes, or declare Final. Chat-only review is invalid for high-risk; default may have the main agent write the report file, but the file must exist before handoff.
 
