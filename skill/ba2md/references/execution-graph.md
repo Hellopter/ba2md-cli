@@ -11,8 +11,8 @@
 | Brief Acceptance | Brief file path(s) on disk + raw corpus | Main agent reopened brief + load-bearing raw anchors; FOUND→VERIFIED/REJECTED in registry; unit Accepted or Repair queued | Research, Evidence Reconcile, Project Discovery |
 | Evidence Reconcile | VERIFIED evidence and issues | Current-to-target decisions, alternatives, assumptions, conflicts, and GAPs recorded | Draft Writing, Research, User Decision |
 | Draft Writing | Registry, decisions, accepted evidence, active template | Draft sections contain traceable FACTs, explicit PROPOSALs/DECISIONs, and visible GAPs | Quality Gate, Repair Research, Project Discovery, User Decision |
-| Quality Gate | Draft + registry + process artifacts | Mechanical and semantic results classified and routed | Draft Review, Draft Writing, Repair Research, Evidence Reconcile, Project Discovery, User Decision |
-| Draft Review | Gated draft or revised candidate | Review package presented; user leads; resolutions recorded and routed; user explicitly confirms a final candidate | Final, Draft Writing, Research, Project Discovery, Requirement Intake, Evidence Reconcile |
+| Quality Gate | Draft + registry + briefs + research-plan | Mechanical precheck run; Content Review run on every readable draft; results classified and routed; handoff only when Content Review is PASS / PASS_WITH_DISCUSSION / BLOCKED | Draft Review, Draft Writing, Repair Research, Evidence Reconcile, Project Discovery, User Decision |
+| Draft Review | Content-reviewed draft (or BLOCKED package) + gate-report with handoff Yes | Review package presented; user leads; resolutions recorded and routed; user explicitly confirms a final candidate | Final, Draft Writing, Research, Project Discovery, Requirement Intake, Evidence Reconcile |
 | Final | Confirmed passing final candidate | Final validator passes and status is final | End |
 
 Run this graph independently for each requirement unit in a directory queue. Do not share evidence registries or Decision Maps across units. When a requirement hash changes, return to Requirement Intake and propagate `DIRTY`.
@@ -39,6 +39,9 @@ Maintain this block in `research-plan.md`:
 - Blocking issues:
 - Repair attempts by issue:
 - Remaining search hypotheses:
+- Content review rounds:
+- Repair rounds:
+- Ready for Draft Review handoff:
 - Last gate:
 ```
 
@@ -102,33 +105,80 @@ After repair:
 
 Do not patch only the visible sentence if downstream design, tests, rollout, permissions, alarms, or rollback depend on the changed fact.
 
+## Quality Gate structure
+
+```text
+Draft Writing → Quality Gate
+  → Mechanical Precheck (validate_artifacts.py)
+  → Content Review (subagent(s), findings only)
+  → classify:
+       MECHANICAL fix-local → re-precheck
+       WRITING → Draft Writing → Quality Gate
+       EVIDENCE → Repair Research → … → Quality Gate
+       CONFLICT → Evidence Reconcile → … → Quality Gate
+       SCOPING → Project Discovery → … → Quality Gate
+       DECISION/PASS_WITH_DISCUSSION → Draft Review
+       PASS → Draft Review
+       BLOCKED (no hypothesis) → Draft Review with blocker package
+```
+
+### Content Review hard rule
+
+Do not enter user-led Draft Review solely because mechanical validation passed
+or because a draft file exists. Content Review must run on every readable draft.
+
+Mechanical precheck is subordinate: it never authorizes handoff alone.
+Content Review is the primary Quality Gate. Reviewers emit findings only; they
+do not edit the draft, promote FACTs, choose business outcomes, or declare Final.
+
+Default intensity: **one comprehensive adversarial reviewer** writing
+`reviews/content-review-*.md` (or the main agent writing that file from a single
+reviewer response). High-risk / Full Closure: up to **three lenses**. Detailed
+multi-lens merge rules live with the Content Review protocol; the structure here
+only requires that Content Review runs and routes before user handoff.
+
+Track in `gate-report.md` / Execution State: `Content review rounds`,
+`Repair rounds`, and `Ready for Draft Review handoff: Yes/No`.
+
 ## Gate Routing Classes
 
 | Failure class | Meaning | Return node |
 |---------------|---------|-------------|
-| `MECHANICAL` | Formatting, numbering, duplicate rows, resolvable missing ID reference | Fix locally; rerun mechanical validation |
-| `WRITING` | Evidence is sufficient; wording or section coverage is wrong | Draft Writing |
-| `EVIDENCE` | Missing, wrong, stale, or unverified raw fact | Repair Research |
-| `CONFLICT` | Authorities disagree or decision is unresolved | Evidence Reconcile; research first if facts are missing |
-| `SCOPING` | Wrong or incomplete source selection or ownership | Project Discovery |
-| `DECISION` | Product/business/scope choice required | Draft Review (record on critical backlog; wait for user lead) |
-| `CRITICAL_GAP` | Implementation cannot be responsibly finalized | Research only with a new search hypothesis; otherwise keep Draft and block Final |
+| `MECHANICAL` | Formatting, numbering, duplicate rows, resolvable missing ID reference | Fix locally; rerun mechanical precheck (then continue Content Review) |
+| `WRITING` | Evidence is sufficient; wording or section coverage is wrong | Draft Writing → Quality Gate |
+| `EVIDENCE` | Missing, wrong, stale, or unverified raw fact | Repair Research → … → Quality Gate |
+| `CONFLICT` | Authorities disagree or decision is unresolved | Evidence Reconcile; research first if facts are missing → … → Quality Gate |
+| `SCOPING` | Wrong or incomplete source selection or ownership | Project Discovery → … → Quality Gate |
+| `DECISION` | Product/business/scope choice required | Draft Review only after Content Review result is PASS_WITH_DISCUSSION (record on critical backlog; wait for user lead) |
+| `CRITICAL_GAP` | Implementation cannot be responsibly finalized | Research only with a new search hypothesis; otherwise Content Review result BLOCKED → Draft Review with blocker package (blocks Final, not transparent Draft) |
 
 The gate may fix `MECHANICAL` issues only. It must not invent routes, fields, symbols, thresholds, permissions, alarms, data models, or change rationales.
+
+Content Review results `RESEARCH_REQUIRED`, `REVISION_REQUIRED`, and
+`RECONCILE_REQUIRED` must loop through the corresponding return node and re-enter
+Quality Gate. They must **not** hand off to user-led Draft Review.
+Handoff is allowed only when Content Review result is in
+`{PASS, PASS_WITH_DISCUSSION, BLOCKED}` and `Ready for Draft Review handoff` is `Yes`.
 
 ## Gate Rerun Level
 
 Use the lightest gate that preserves integrity:
 
-- **Mechanical validation** for formatting, IDs, placeholders, status, and anchor existence.
-- **Local semantic review** for wording-only edits, table reshaping, section-local clarification, or non-load-bearing prose.
-- **Full semantic gate** for requirement scope, selected source(s), source evidence, API/schema/auth/data/event/rollback, critical GAP/CONFLICT, existing-seam `ADD` proof, or final-candidate changes.
+- **Mechanical precheck** for formatting, IDs, placeholders, status, and anchor existence.
+- **Local content review** for wording-only edits, table reshaping, section-local clarification, or non-load-bearing prose.
+- **Full content review** for requirement scope, selected source(s), source evidence, API/schema/auth/data/event/rollback, critical GAP/CONFLICT, existing-seam `ADD` proof, or final-candidate changes.
 
-Always run full semantic gate before presenting a final candidate.
+Always run full content review before presenting a final candidate.
+After every repair or rewrite cycle, rerun mechanical precheck plus the
+appropriate content-review level before considering handoff.
 
 ## Enter Draft Review
 
-After a readable draft and gate report exist, enter Draft Review as a **user-led revision loop**. Present the review package, then stop and wait for the user.
+Do not enter Draft Review from mechanical PASS alone or from a draft file existing.
+Enter Draft Review only after Content Review has run on the readable draft and the
+gate report sets `Ready for Draft Review handoff: Yes` (Content Review result in
+`{PASS, PASS_WITH_DISCUSSION, BLOCKED}`). Then run Draft Review as a **user-led
+revision loop**. Present the review package, then stop and wait for the user.
 
 ### Review package
 

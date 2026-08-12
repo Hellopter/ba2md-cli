@@ -21,7 +21,8 @@ Use `{SKILL_DIR}` for this skill directory and `{WORKSPACE}` for the project roo
 | Process artifact | `{WORKSPACE}/product/<slug>/research-plan.md` | Requirement state, selected sources, research units, dirty sections, and gate state |
 | Process artifact | `{WORKSPACE}/product/<slug>/briefs/<unit-id>.md` | Mandatory per research unit: frozen Unit Contract + search log + FOUND candidates. Empty `briefs/` after Research is a protocol failure. |
 | Process artifact | `{WORKSPACE}/product/<slug>/evidence-registry.md` | Evidence, claims, issues, decisions, and user-confirmed changes |
-| Process artifact | `{WORKSPACE}/product/<slug>/gate-report.md` | Latest quality-gate results and routing decisions |
+| Process artifact | `{WORKSPACE}/product/<slug>/gate-report.md` | Latest quality-gate results: mechanical precheck + Content Review + routing / handoff |
+| Process artifact | `{WORKSPACE}/product/<slug>/reviews/content-review-*.md` | Content Review findings (primary gate); required before Draft Review handoff |
 | Deliverable | `{WORKSPACE}/product/<slug>/<slug>.draft.md` | Draft and final candidate |
 | Deliverable | `{WORKSPACE}/product/<slug>/<slug>.md` | Final document after explicit user confirmation |
 | Template package | `{SKILL_DIR}/templates/` | Replaceable document template and referenced section constraints |
@@ -65,19 +66,24 @@ Read `references/execution-graph.md`. Follow this graph; do not collapse it into
 ```text
 Requirement Intake → Project Discovery → Research Plan → Research
 → Brief Acceptance → Evidence Reconcile → Draft Writing
-→ Quality Gate → Draft Review → Final
+→ Quality Gate
+     → Mechanical Precheck (subordinate)
+     → Content Review (primary; findings only)
+→ Draft Review (only after Content Review PASS / PASS_WITH_DISCUSSION / BLOCKED)
+→ Final
 ```
 
 Required back edges:
 
 - Draft Writing fact gap → Repair Research → Brief Acceptance → Evidence Reconcile → affected Draft Writing sections.
-- Quality Gate evidence failure → Repair Research.
-- Quality Gate writing failure → Draft Writing.
-- Quality Gate conflict failure → Evidence Reconcile.
-- Quality Gate scope/selection failure → Project Discovery.
+- Quality Gate mechanical failure → fix locally → re-precheck → continue Content Review.
+- Quality Gate evidence failure → Repair Research → … → Quality Gate.
+- Quality Gate writing failure → Draft Writing → Quality Gate.
+- Quality Gate conflict failure → Evidence Reconcile → … → Quality Gate.
+- Quality Gate scope/selection failure → Project Discovery → … → Quality Gate.
 - User decision, concern, or grill resolution → earliest affected node → rewrite draft → Quality Gate → Draft Review again.
 
-A bounded GAP is a valid Draft result. Critical GAPs block Final, not transparent Draft writing. Draft Review is a **revision loop**, not a one-shot questionnaire before Final.
+Do not enter user-led Draft Review solely because mechanical validation passed or because a draft file exists. Content Review must run on every readable draft. A bounded GAP is a valid Draft result. Critical GAPs block Final, not transparent Draft writing. Draft Review is a **revision loop**, not a one-shot questionnaire before Final.
 
 ## Node Workflow
 
@@ -133,9 +139,11 @@ When writing exposes a missing load-bearing fact about an API, field, symbol, sc
 
 Create another repair unit only when a new concrete path, symbol, source type, owner, source project, boundary, or user-provided source creates a new search hypothesis. Otherwise record a GAP instead of repeating speculative searches.
 
-### 6. Run Quality Gates
+### 6. Run Quality Gates (Mechanical Precheck + Content Review)
 
-Run deterministic validation as a mechanical check. If `{SKILL_DIR}/scripts/validate_artifacts.py` exists, execute:
+Quality Gate is a **two-layer loop**. Mechanical precheck is subordinate; Content Review is primary and must run before any user-led Draft Review handoff.
+
+**Layer A — Mechanical precheck (subordinate).** If `{SKILL_DIR}/scripts/validate_artifacts.py` exists, execute:
 
 ```bash
 python3 {SKILL_DIR}/scripts/validate_artifacts.py \
@@ -144,13 +152,25 @@ python3 {SKILL_DIR}/scripts/validate_artifacts.py \
   --mode draft
 ```
 
-Run semantic review after a readable draft and evidence registry exist. One comprehensive reviewer is enough by default; use at most two for high-risk or multi-project designs. Gate reviewers emit findings only; they cannot edit the draft, promote FACTs, choose business outcomes, or declare final PASS.
+Fix only `MECHANICAL` issues locally and re-precheck. A mechanical PASS never authorizes Draft Review handoff and never skips Content Review.
 
-Rerun the appropriate gate after changes: mechanical validation for mechanical edits, local semantic review for wording or section-only edits, and full semantic gate for requirement scope, selected source(s), source evidence, API/schema/auth/data/event/rollback, critical GAP/CONFLICT, or final-candidate changes.
+**Layer B — Content Review (primary).** After a readable draft exists, run Content Review against the draft, registry, briefs, research-plan, and active template. Default intensity: **one comprehensive adversarial reviewer**. High-risk / Full Closure: up to **three lenses**. Write findings to `product/<slug>/reviews/content-review-*.md` using `assets/content-review-report-template.md` and summarize them in `gate-report.md` using `assets/gate-report-template.md`. Reviewers emit findings only; they cannot edit the draft, promote FACTs, choose business outcomes, or declare Final.
+
+Classify Content Review results and route:
+
+- `RESEARCH_REQUIRED` → Repair Research → … → Quality Gate (loop; no handoff)
+- `REVISION_REQUIRED` → Draft Writing → Quality Gate (loop; no handoff)
+- `RECONCILE_REQUIRED` → Evidence Reconcile → … → Quality Gate (loop; no handoff)
+- `PASS` / `PASS_WITH_DISCUSSION` → Draft Review handoff authorized
+- `BLOCKED` (no remaining search hypothesis) → Draft Review with blocker package
+
+Set `Ready for Draft Review handoff: Yes` only when Content Review result is in `{PASS, PASS_WITH_DISCUSSION, BLOCKED}`.
+
+Rerun the appropriate gate after changes: mechanical precheck for mechanical edits, local content review for wording or section-only edits, and full content review for requirement scope, selected source(s), source evidence, API/schema/auth/data/event/rollback, critical GAP/CONFLICT, or final-candidate changes.
 
 ### 7. Hand the Floor in Draft Review, Then Revise Until Confirmed
 
-After gating, enter Draft Review. Read `references/execution-graph.md` for the full protocol. This node has two jobs: collect what the user cares about, and turn resolutions into a new draft — not interrogate the user into accepting the first draft.
+Enter Draft Review only after Content Review has authorized handoff (`Ready for Draft Review handoff: Yes`). Do not hand off from mechanical PASS alone. Read `references/execution-graph.md` for the full protocol. This node has two jobs: collect what the user cares about, and turn resolutions into a new draft — not interrogate the user into accepting the first draft.
 
 **Present the review package, then stop and wait.** Include:
 
@@ -184,8 +204,10 @@ Create `{slug}.md`, set `status: final`, and run final validation only after the
 - Prefer existing seams; every `ADD` needs existing-seam insufficiency evidence.
 - Verify both endpoints of material cross-source boundaries when they are known or suspected; record bounded GAPs when evidence cannot be found.
 - Do not create research units mechanically from template subsections.
+- Treat mechanical validation as subordinate precheck only; Content Review is the primary Quality Gate and must run on every readable draft.
+- Do not enter user-led Draft Review from mechanical PASS alone or from a draft file existing; handoff requires Content Review result in `{PASS, PASS_WITH_DISCUSSION, BLOCKED}`.
 - In Draft Review, present the critical backlog and hand the floor; load `grilling/SKILL.md` only on user lead or explicit opt-in.
 - Prefer the user's concerns over the agent's question order; never ask the user to guess implementation facts.
 - Route every resolution through the Decision Map and the earliest affected node; re-enter Draft Review after each revision cycle.
-- Block finalization on unresolved critical GAPs/CONFLICTs, unconfirmed critical decisions the user engaged, uncleared `DIRTY` sections, gate failure, or missing explicit user confirmation of the final candidate.
+- Block finalization on unresolved critical GAPs/CONFLICTs, unconfirmed critical decisions the user engaged, uncleared `DIRTY` sections, missing Content Review handoff authorization, gate failure, or missing explicit user confirmation of the final candidate.
 - Do not commit or push unless the user explicitly requests it.

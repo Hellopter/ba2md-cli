@@ -6,6 +6,7 @@
 - Requirement and FACT boundaries
 - Template and precise-identifier rules
 - Multi-project evidence closure
+- Mechanical validation subordination
 - Gate Findings and user decisions
 - Final admission
 
@@ -93,7 +94,16 @@ For a multi-source requirement, correctness is not the sum of isolated source fi
 
 The set of in-scope sources is exactly the set of distinct `sources/<id>` roots appearing in `evidence-registry.md`.
 
-Do not mark the impact set closed merely because each source was researched independently. It is closed only when requirement coverage and material cross-source edges are explained end to end or represented by explicit GAP/CONFLICT records. The mechanical validator does **not** judge closure — that is a semantic-gate responsibility; the validator only checks that the evidence anchors you did write are real.
+Do not mark the impact set closed merely because each source was researched independently. It is closed only when requirement coverage and material cross-source edges are explained end to end or represented by explicit GAP/CONFLICT records. The mechanical validator does **not** judge closure — that is a Content Review responsibility; the validator only checks that the evidence anchors you did write are real.
+
+## Mechanical validation is subordinate
+
+`scripts/validate_artifacts.py` checks artifact shape, IDs, anchor existence,
+placeholders, and finalization blockers that are mechanically knowable.
+It does not judge design quality, completeness of reasoning, seam sufficiency
+beyond simple ADD field presence, or whether the draft is implementable.
+Content Review is the primary Quality Gate. A mechanical PASS with no content
+review is a protocol violation.
 
 ## Gate Findings
 
@@ -105,14 +115,17 @@ Use these gate outcomes:
 |---------|---------|
 | `PASS` | No revision required; still enter Draft Review to hand the floor |
 | `PASS_WITH_DISCUSSION` | Draft is presentable and carries a critical backlog for user-led review |
-| `RESEARCH_REQUIRED` | Evidence is missing, incorrect, or unverified |
-| `REVISION_REQUIRED` | Evidence is sufficient but design expression or coverage needs revision |
-| `RECONCILE_REQUIRED` | Authoritative sources or design choices are unresolved |
-| `BLOCKED` | A critical GAP has no remaining search hypothesis and blocks finalization |
+| `RESEARCH_REQUIRED` | Evidence is missing, incorrect, or unverified — loop, do not hand off |
+| `REVISION_REQUIRED` | Evidence is sufficient but design expression or coverage needs revision — loop, do not hand off |
+| `RECONCILE_REQUIRED` | Authoritative sources or design choices are unresolved — loop, do not hand off |
+| `BLOCKED` | A critical GAP has no remaining search hypothesis; hand off a blocker package (blocks Final, not transparent Draft) |
 
-The semantic gate is the primary content review and must run for every readable draft regardless of mechanical-validator status. Mechanical validation supplements semantic review with artifact, ID, anchor, and placeholder checks; it never proves scope or design completeness.
+Content Review is the primary Quality Gate and must run for every readable draft
+regardless of mechanical-validator status. Mechanical precheck never authorizes
+Draft Review handoff. Handoff requires Content Review result in
+`{PASS, PASS_WITH_DISCUSSION, BLOCKED}`.
 
-The semantic gate must check the level appropriate to the task:
+The content review must check the level appropriate to the task:
 
 **Always check:**
 
@@ -168,5 +181,5 @@ Generate the final document only when all conditions hold:
 - every precise current fact is supported by VERIFIED FACT;
 - every `ADD` has insufficiency evidence;
 - critical GAPs/CONFLICTs are resolved or correctly block finalization;
-- deterministic validation and required semantic gate pass;
+- mechanical precheck and required Content Review pass (or BLOCKED package is correctly admitted and does not claim final readiness);
 - the user explicitly confirms that candidate as final.

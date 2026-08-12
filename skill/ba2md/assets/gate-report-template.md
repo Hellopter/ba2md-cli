@@ -1,19 +1,24 @@
 # Quality Gate Report: <title>
 
+> Mechanical PASS never authorizes Draft Review handoff.
+> Handoff requires Content Review result in {PASS, PASS_WITH_DISCUSSION, BLOCKED}.
+> RESEARCH_REQUIRED / REVISION_REQUIRED / RECONCILE_REQUIRED must loop, not hand off.
+
 - Run date:
 - Mode: draft / final
-- Gate level: mechanical / local-semantic / full-semantic
+- Gate level: mechanical / local-content / full-content
 - Overall result: PASS / PASS_WITH_DISCUSSION / RESEARCH_REQUIRED / REVISION_REQUIRED / RECONCILE_REQUIRED / BLOCKED
+- Content review rounds:
+- Repair rounds:
 - Current node:
 - Resume node:
+- Ready for Draft Review handoff: Yes/No
 
-## Primary Semantic Content Review
+## 1. Mechanical Precheck (subordinate)
 
-| Finding ID | Type | Severity | Problem | Basis | Affected sections | Needs user | Recommended return node | Status |
-|------------|------|----------|---------|-------|-------------------|------------|-------------------------|--------|
-| GF-001 | MECHANICAL/WRITING/EVIDENCE/CONFLICT/SCOPING/DECISION/CRITICAL_GAP | Critical/High/Medium/Low | | | | Yes/No | | OPEN/RESOLVED |
+> Subordinate only. A mechanical PASS does **not** authorize user-led Draft Review.
 
-## Supplemental Deterministic Validation
+Script: `scripts/validate_artifacts.py` (or equivalent local fixes summary)
 
 | Check | Result | Details |
 |-------|--------|---------|
@@ -26,30 +31,53 @@
 | ADD insufficiency field | | |
 | Critical-question and decision status | | |
 
-## Dirty Sections
+- Mechanical overall: PASS / FAIL
+- Local mechanical fixes applied this round:
+
+## 2. Content Review (primary)
+
+> Primary Quality Gate. Must run on every readable draft. Findings-only; reviewers do not edit the draft or promote FACTs.
+
+- Content Review result: PASS / PASS_WITH_DISCUSSION / RESEARCH_REQUIRED / REVISION_REQUIRED / RECONCILE_REQUIRED / BLOCKED
+- Reviewer mode: default (1 comprehensive) / high-risk (up to 3 lenses)
+- Review report path(s): `reviews/content-review-*.md`
+
+### Content Review Findings
+
+| Finding ID | Type | Severity | Problem | Basis | Affected sections | Needs user | Recommended return node | Status |
+|------------|------|----------|---------|-------|-------------------|------------|-------------------------|--------|
+| GF-001 | MECHANICAL/WRITING/EVIDENCE/CONFLICT/SCOPING/DECISION/CRITICAL_GAP | Critical/High/Medium/Low | | | | Yes/No | | OPEN/RESOLVED |
+
+### Must-fix before user handoff
+
+- ...
+
+## 3. Dirty Sections
 
 | Section | Trigger | Dependent evidence / claim / decision IDs | Required action | Status |
 |---------|---------|-------------------------------------------|-----------------|--------|
 | | | | | DIRTY/CLEARED |
 
-## Critical Backlog for User-Led Review
-
-> List load-bearing user-decidable items discovered while drafting/gating. Present this table as a menu in Draft Review; do not auto-open the first row as a popup. Missing implementation facts do not belong here — record them as GAPs. Status values: OPEN / ENGAGED / ACCEPTED / DEFERRED / SUPERSEDED.
-
-| Question ID | Question | Known facts or gaps | Recommended option and rationale | Other options | Impact | Status |
-|-------------|----------|---------------------|----------------------------------|---------------|--------|--------|
-| Q-<FEATURE>-001 | | | | | | OPEN |
-
-## Routing Decision
+## 4. Routing Decision
 
 - Next node:
 - Repair research units:
 - Sections to rewrite:
 - Discussion required:
 - Required next gate level:
-- Reason if full semantic gate is required:
+- Reason if full content review is required:
+- Loop action: re-precheck / rewrite / repair-research / reconcile / rediscover / handoff / handoff-blocked
 
-## Evidence Quality Summary
+## 5. Critical Backlog for User-Led Review
+
+> List load-bearing user-decidable items discovered while drafting/gating. Present this table as a menu in Draft Review; do not auto-open the first row as a popup. Missing implementation facts do not belong here — record them as GAPs. Status values: OPEN / ENGAGED / ACCEPTED / DEFERRED / SUPERSEDED.
+> Include this backlog in the handoff package only when Ready for Draft Review handoff is Yes.
+
+| Question ID | Question | Known facts or gaps | Recommended option and rationale | Other options | Impact | Status |
+|-------------|----------|---------------------|----------------------------------|---------------|--------|--------|
+| Q-<FEATURE>-001 | | | | | | OPEN |
+
+## 6. Evidence Quality Summary
 
 | Metric | Result |
 |--------|--------|
@@ -71,10 +99,11 @@
 | ADD insufficiency coverage | |
 | Open critical GAPs / CONFLICTs | |
 | Unconfirmed critical user questions | |
-| User-led review handoff completed | |
+| Content Review completed this gate | Yes/No |
+| User-led review handoff authorized | Yes/No |
 | User-engaged decisions recorded | |
 
-## Draft Review Summary
+## 7. Draft Review Handoff Summary
 
 - Draft path:
 - Recommended design direction:
@@ -83,5 +112,6 @@
 - Changes from previous version:
 - Resolved issues:
 - Remaining non-critical GAPs:
+- Blocker package attached (when BLOCKED):
 - Floor handed to user / awaiting user lead:
 - Ready as a final candidate only after explicit user confirmation:
