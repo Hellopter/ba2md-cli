@@ -163,19 +163,26 @@ Subagents assign candidate IDs and status `FOUND`. They must provide raw paths a
 
 A subagent may report `SUMMARY`, `FACT`, `ASSUMPTION`, `GAP`, and `CONFLICT`; it must not mark a FACT `VERIFIED`.
 
-## Brief Acceptance Gate
+## Brief Acceptance Gate (file-backed)
 
-The main agent must:
+Inputs: list of brief paths from Execution State / Research Units table.
 
-1. confirm Source ID or boundary scope;
-2. reopen load-bearing raw anchors;
-3. verify route composition, fields, symbols, schemas, permissions, limits, alerts, rollback, and operations claims when relevant;
-4. promote accepted FACT candidates from `FOUND` to `VERIFIED` in the registry;
-5. mark wrong candidates `REJECTED` with reason;
-6. create follow-up or repair units only for new concrete search hypotheses;
-7. update current-to-target decisions and affected sections.
+For each path:
+1. Fail closed if file missing → unit status `FAILED_NO_BRIEF`, re-dispatch or main-agent fill.
+2. Read Unit Contract; reject brief if Source ID/root drifted from contract.
+3. Reopen every load-bearing raw anchor cited in Evidence Candidates.
+4. Promote accepted FACT FOUND → VERIFIED in evidence-registry.md (main agent only).
+5. Mark wrong candidates REJECTED with reason in registry (and note in brief Main-Agent Acceptance).
+6. Propagate newly discovered sources/boundaries into research-plan / new units.
+7. Only then mark unit Accepted.
 
-Reject or repair a brief when:
+Merge order for parallel units:
+- accept non-overlapping sources first;
+- then boundary units;
+- resolve ID collisions in the main agent while writing the registry.
+Do not summarize from memory across units — reopen each brief file.
+
+Also reject or repair a brief when:
 
 - an exact identifier lacks a raw anchor;
 - wiki is the only support for a code-level claim;
@@ -220,4 +227,10 @@ A gate subagent must not edit the draft, promote FACTs, choose business outcomes
 
 ## Parallelism
 
-Run at most four independent ready research units concurrently. Merge or sequence parent/child units or units sharing the same main path. Keep the immediate blocker on the main agent and continue useful non-overlapping work while sidecar units run. Do not duplicate delegated work locally.
+- Max 4 ready units.
+- Main agent writes all Unit Contracts into brief files BEFORE any parallel dispatch.
+- Each parallel worker gets exactly one brief path.
+- After join: main agent lists `briefs/*.md` and diffs against Accepted/Open units; any missing file is a hard error for that unit.
+- Do not start Evidence Reconcile while any non-cancelled unit lacks a brief file.
+
+Merge or sequence parent/child units or units sharing the same main path. Keep the immediate blocker on the main agent and continue useful non-overlapping work while sidecar units run. Do not duplicate delegated work locally.

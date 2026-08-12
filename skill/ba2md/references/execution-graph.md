@@ -7,8 +7,8 @@
 | Requirement Intake | User request, `requirements/`, active template folder | Requirement unit selected; path/hash/anchors recorded; goals, scope, constraints, acceptance, and non-goals captured; active template loaded | Project Discovery, User Decision |
 | Project Discovery | Requirement interpretation | Relevant sources selected from wiki discovery; known material boundaries recorded or GAPed | Research Plan, User Decision |
 | Research Plan | Selected sources and initial anchors | Units, dependencies, expected facts, graph state, and readiness level written | Research, Project Discovery |
-| Research | One bounded unit | On-disk brief at `briefs/<unit-id>.md` with frozen Unit Contract, Search Log, and evidence candidates or bounded negative GAP | Brief Acceptance |
-| Brief Acceptance | Brief file + raw artifacts | Load-bearing candidates verified/rejected; registry and affected sections updated | Research, Evidence Reconcile, Project Discovery |
+| Research | One Unit Contract + empty/partial brief path | `briefs/<unit-id>.md` exists; Search Log present; candidates or bounded GAP recorded; unit status ready-for-acceptance | Brief Acceptance |
+| Brief Acceptance | Brief file path(s) on disk + raw corpus | Main agent reopened brief + load-bearing raw anchors; FOUND→VERIFIED/REJECTED in registry; unit Accepted or Repair queued | Research, Evidence Reconcile, Project Discovery |
 | Evidence Reconcile | VERIFIED evidence and issues | Current-to-target decisions, alternatives, assumptions, conflicts, and GAPs recorded | Draft Writing, Research, User Decision |
 | Draft Writing | Registry, decisions, accepted evidence, active template | Draft sections contain traceable FACTs, explicit PROPOSALs/DECISIONs, and visible GAPs | Quality Gate, Repair Research, Project Discovery, User Decision |
 | Quality Gate | Draft + registry + process artifacts | Mechanical and semantic results classified and routed | Draft Review, Draft Writing, Repair Research, Evidence Reconcile, Project Discovery, User Decision |
@@ -16,6 +16,14 @@
 | Final | Confirmed passing final candidate | Final validator passes and status is final | End |
 
 Run this graph independently for each requirement unit in a directory queue. Do not share evidence registries or Decision Maps across units. When a requirement hash changes, return to Requirement Intake and propagate `DIRTY`.
+
+### Research land-to-disk rule
+A research unit is not done when the model "knows" the answer.
+It is done when `briefs/<unit-id>.md` exists and is readable.
+If a subagent returns prose without a brief file, the main agent must either:
+1. write the brief from that prose into `briefs/<unit-id>.md` only when anchors are explicit and complete; or
+2. mark the unit failed and re-dispatch with the brief path as the only deliverable.
+Never promote evidence that exists only in chat.
 
 ## Execution State
 
@@ -197,3 +205,9 @@ Silence, vague assent, or “the backlog is empty” is not confirmation. Genera
 ## Parallelism
 
 The main agent owns discovery, acceptance, reconciliation, writing, routing, and user discussion. Delegate independent research units with disjoint source/concern scopes. Cap parallel subagents at four unless explicitly justified. Do not ask subagents to edit the final SDD.
+
+- Max 4 ready units.
+- Main agent writes all Unit Contracts into brief files BEFORE any parallel dispatch.
+- Each parallel worker gets exactly one brief path.
+- After join: main agent lists `briefs/*.md` and diffs against Accepted/Open units; any missing file is a hard error for that unit.
+- Do not start Evidence Reconcile while any non-cancelled unit lacks a brief file.

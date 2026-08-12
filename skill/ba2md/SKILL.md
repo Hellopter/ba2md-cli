@@ -109,9 +109,13 @@ Use a lightweight Draft Readiness Check for ordinary work. Use the heavier Full 
 
 ### 4. Research and Accept Evidence
 
+Research is file-backed. Every unit writes `briefs/<unit-id>.md`.
+Brief Acceptance reads those files and raw anchors; chat output is not evidence.
+An empty `briefs/` directory after Research is a failed run of this node, not a shortcut.
+
 Delegate bounded, independent fact-finding units to subagents when it materially helps and when each unit has clear inputs and outputs. Default small or single-project work to the main agent. Use one source per unit unless the unit is an explicitly named cross-source boundary. Subagents return `FOUND` candidates and never write the final SDD.
 
-Before dispatch, write each unit's brief with the Unit Contract filled. Every research unit — main-agent or subagent — updates only that brief file (`assets/research-brief-template.md`). Do not accept a subagent textual dump as a substitute for the on-disk brief. The main agent must reopen load-bearing raw anchors before promoting candidates to `VERIFIED` in `evidence-registry.md`. Reject or repair briefs with unanchored identifiers, wiki-only implementation claims, mixed current/target behavior, unpropagated dependency discoveries, or unjustified `ADD` recommendations.
+Before dispatch, write each unit's brief with the Unit Contract filled (`product/<slug>/briefs/<unit-id>.md` from `assets/research-brief-template.md`). Every research unit — main-agent or subagent — updates only that brief file. Do not accept a subagent textual dump as a substitute for the on-disk brief. The main agent must reopen load-bearing raw anchors before promoting candidates to `VERIFIED` in `evidence-registry.md`. Reject or repair briefs with unanchored identifiers, wiki-only implementation claims, mixed current/target behavior, unpropagated dependency discoveries, or unjustified `ADD` recommendations.
 
 Build current-to-target decisions using `REUSE`, `MODIFY`, `EXTEND`, `ADD`, `DEPRECATE`, or `REMOVE`. Every `ADD` must name inspected existing seams and explain why they are insufficient.
 
