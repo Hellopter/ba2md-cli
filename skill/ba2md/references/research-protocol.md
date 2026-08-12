@@ -63,6 +63,9 @@ Write `{WORKSPACE}/product/<slug>/research-plan.md`:
 - Blocking issues:
 - Repair attempts by issue:
 - Remaining search hypotheses:
+- content_review_round:
+- repair_rounds_by_finding_cluster:
+- Ready for Draft Review handoff: Yes/No
 - Last gate:
 ```
 
@@ -207,23 +210,100 @@ Close a research unit successfully when either:
 
 Do not turn factual GAPs into popup questions. The user is not responsible for guessing interfaces, fields, class names, thresholds, or configuration. A critical GAP may block Final, but it should remain visible in Draft and the gate report.
 
-## Semantic Gate Subagent
+## Content Review (primary Quality Gate)
 
-Invoke an independent semantic gate subagent after a readable draft and evidence registry exist. Run mechanical validation before or in parallel when useful; a mechanical failure suppresses semantic review only when the draft or registry cannot be read.
+Content Review is the primary Quality Gate. Invoke it after a readable draft and evidence registry exist. Run mechanical precheck before or in parallel when useful; a mechanical failure suppresses Content Review only when the draft or registry cannot be read. Mechanical PASS never substitutes for Content Review and never authorizes Draft Review handoff.
 
-- default: one comprehensive reviewer;
-- high-risk or multi-project design: at most two reviewers, divided into evidence consistency and end-to-end design completeness.
+Reviewers emit findings only. They must not edit the draft, promote FACTs, choose business outcomes, or declare final PASS / Final. The main agent rechecks load-bearing findings, merges multi-lens reports, routes outcomes, and alone sets `Ready for Draft Review handoff`.
 
-Provide the draft, evidence registry, research plan, selected raw anchors, and active template constraints needed for the review. Require Findings in this form:
+Detailed checklists live in `references/evidence-quality.md`. Intensity, I/O, merge, and convergence rules live here.
 
-```markdown
-| Finding ID | Type | Severity | Problem | Basis | Affected sections | Needs user | Recommended return stage |
-|------------|------|----------|---------|-------|-------------------|------------|--------------------------|
-```
+### Content Review modes
 
-The reviewer checks source selection, exact identifiers, boundary endpoints, current/target separation, existing-seam proof for `ADD`, irrelevant populated sections, missing acceptance/security/reliability/migration/rollback coverage, and user-decidable design choices.
+#### Default (ordinary single-source / low-risk)
 
-A gate subagent must not edit the draft, promote FACTs, choose business outcomes, or declare final PASS. The main agent rechecks load-bearing Findings, deduplicates them, and routes them. Mechanical PASS never substitutes for semantic acceptance.
+1. One comprehensive content reviewer (findings only).
+2. Reviewer must actively try to break the draft:
+   - unsupported precise identifiers
+   - wiki/REQUIREMENT used as current implementation
+   - ADD without seam insufficiency
+   - missing failure/auth/rollback when relevant
+   - brief claims not present in registry/draft traceably
+3. Main agent adversarially spot-checks top findings (reopen anchors) before routing.
+
+#### High-risk (Full Closure triggers already defined in skill)
+
+Run up to 3 parallel reviewers with disjoint lenses:
+
+1. `evidence-consistency` — registry ↔ draft ↔ briefs ↔ raw anchors
+2. `e2e-completeness` — requirement coverage, boundaries, ops/security/migration
+3. `adversarial-refuter` — assume draft is wrong; try to refute key REUSE/MODIFY/EXTEND/ADD decisions and exact paths
+
+Merge rule:
+
+- Union findings.
+- Deduplicate by `(section, problem fingerprint)`.
+- If `adversarial-refuter` refutes a load-bearing claim and others did not defend it with VERIFIED evidence → treat as EVIDENCE or REVISION required.
+- Majority is not enough to pass: any Critical unrefuted-attack that stands after main-agent recheck blocks handoff.
+
+### Content reviewer I/O
+
+Every Content Review pass — main-agent or subagent — is a pure file-backed job (mirrors research units).
+
+#### Input (must be explicit in the reviewer prompt + readable files)
+
+- draft path
+- evidence-registry path
+- research-plan path
+- list of brief paths
+- active template path / relevant section constraints
+- reviewer lens: `comprehensive` | `evidence-consistency` | `e2e-completeness` | `adversarial-refuter`
+- output path: `product/<slug>/reviews/content-review-<round>-<lens>.md`
+- absolute path to `assets/content-review-report-template.md`
+
+#### Process
+
+- Read only the assigned inputs; reopen raw anchors when attacking load-bearing claims
+- Write findings into THIS review file only
+- Do not edit draft, evidence-registry, research-plan, or briefs
+- Do not promote FACTs, choose business outcomes, or declare final PASS / Final
+
+#### Output (must exist on disk before handoff can be considered)
+
+- `product/<slug>/reviews/content-review-<round>-<lens>.md` using `assets/content-review-report-template.md`
+- return: `REVIEW_WRITTEN <path>` + finding counts (Critical/High/Medium/Low)
+
+Chat-only review without a file is invalid for high-risk. For default, the main agent may write the report file itself from a single reviewer response, but the file must still exist before handoff.
+
+Before spawning a content-review subagent, the main agent MUST include the absolute output path and say:
+"Write only this review file from the content-review-report-template. Return only: REVIEW_WRITTEN <path> + finding counts."
+Do not accept a subagent textual dump as a substitute for the review file when high-risk lenses run.
+
+### Content Review ↔ Repair convergence
+
+Track in `gate-report.md` / research-plan Execution State:
+
+- `content_review_round`
+- `repair_rounds_by_finding_cluster`
+
+Defaults:
+
+- max `content_review_round` = 3 before forced handoff-as-`BLOCKED` or `PASS_WITH_DISCUSSION` (main agent chooses by whether Critical must-fix items remain with no remaining search hypothesis)
+- one repair unit per missing-fact cluster (existing Repair Research rule)
+- another repair only on a new concrete search hypothesis
+
+After each repair/rewrite: rerun mechanical precheck + appropriate content review level (full after evidence/scope changes; local after wording-only). Increment `content_review_round` each time Content Review runs on a post-repair/post-rewrite candidate. Do not thrash the same finding cluster without a new hypothesis — convert to GAP / `BLOCKED` or surface as user-decidable `Q-*` when appropriate.
+
+### Main-agent merge and routing
+
+After review file(s) exist:
+
+1. Fail closed if expected `reviews/content-review-<round>-*.md` files are missing.
+2. Union and dedupe findings; apply high-risk merge rules when multiple lenses ran.
+3. Adversarially spot-check top Critical/High findings (reopen anchors / seams).
+4. Drop findings that fail recheck; keep unrefuted Critical attacks that stand.
+5. Classify and route per `references/execution-graph.md` and `references/evidence-quality.md`.
+6. Set `Ready for Draft Review handoff: Yes` only when Content Review result is in `{PASS, PASS_WITH_DISCUSSION, BLOCKED}`.
 
 ## Parallelism
 

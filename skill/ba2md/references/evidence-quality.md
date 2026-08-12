@@ -7,6 +7,7 @@
 - Template and precise-identifier rules
 - Multi-project evidence closure
 - Mechanical validation subordination
+- Content Review modes, merge, and convergence
 - Gate Findings and user decisions
 - Final admission
 
@@ -105,9 +106,42 @@ beyond simple ADD field presence, or whether the draft is implementable.
 Content Review is the primary Quality Gate. A mechanical PASS with no content
 review is a protocol violation.
 
+## Content Review modes, merge, and convergence
+
+Protocol detail (I/O paths, dispatch wording, Execution State fields):
+`references/research-protocol.md` → **Content Review (primary Quality Gate)**.
+Write every review pass to
+`product/<slug>/reviews/content-review-<round>-<lens>.md` from
+`assets/content-review-report-template.md`.
+
+### Modes
+
+| Mode | When | Reviewers |
+|------|------|-----------|
+| Default | Ordinary single-source / low-risk | 1 comprehensive adversarial reviewer (findings only) |
+| High-risk | Full Closure triggers (multi-service contracts, external APIs, schema migration, auth/tenancy/security, money/audit, async jobs, release/rollback, or explicit user request) | Up to 3 parallel lenses: `evidence-consistency`, `e2e-completeness`, `adversarial-refuter` |
+
+Default reviewer must actively try to break the draft (unsupported precise IDs, wiki/REQUIREMENT as current implementation, ADD without seam insufficiency, missing failure/auth/rollback when relevant, brief claims not traceable in registry/draft). Main agent adversarially spot-checks top findings (reopen anchors) before routing.
+
+### Multi-lens merge (high-risk)
+
+- Union findings across lenses.
+- Deduplicate by `(section, problem fingerprint)`.
+- If `adversarial-refuter` refutes a load-bearing claim and other lenses did not defend it with VERIFIED evidence → treat as EVIDENCE or REVISION required.
+- Majority is not enough to pass: any Critical unrefuted-attack that stands after main-agent recheck blocks handoff.
+
+### Repair ↔ review convergence
+
+Track `content_review_round` and `repair_rounds_by_finding_cluster` in
+`gate-report.md` / research-plan Execution State.
+
+- max `content_review_round` = 3 before forced handoff-as-`BLOCKED` or `PASS_WITH_DISCUSSION`
+- one repair unit per missing-fact cluster; another repair only on a new concrete search hypothesis
+- after each repair/rewrite: mechanical precheck + appropriate content-review level (full after evidence/scope changes; local after wording-only)
+
 ## Gate Findings
 
-Each Finding contains an ID, type, severity, problem, basis, affected sections, whether user input is needed, and recommended return stage.
+Each Finding contains an ID, type, severity, problem, basis, affected sections, whether user input is needed, and recommended return stage/node.
 
 Use these gate outcomes:
 
@@ -123,7 +157,8 @@ Use these gate outcomes:
 Content Review is the primary Quality Gate and must run for every readable draft
 regardless of mechanical-validator status. Mechanical precheck never authorizes
 Draft Review handoff. Handoff requires Content Review result in
-`{PASS, PASS_WITH_DISCUSSION, BLOCKED}`.
+`{PASS, PASS_WITH_DISCUSSION, BLOCKED}` and on-disk
+`reviews/content-review-<round>-*.md` for the current round.
 
 The content review must check the level appropriate to the task:
 

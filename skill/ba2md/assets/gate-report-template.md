@@ -8,8 +8,8 @@
 - Mode: draft / final
 - Gate level: mechanical / local-content / full-content
 - Overall result: PASS / PASS_WITH_DISCUSSION / RESEARCH_REQUIRED / REVISION_REQUIRED / RECONCILE_REQUIRED / BLOCKED
-- Content review rounds:
-- Repair rounds:
+- content_review_round:
+- repair_rounds_by_finding_cluster:
 - Current node:
 - Resume node:
 - Ready for Draft Review handoff: Yes/No
@@ -40,7 +40,7 @@ Script: `scripts/validate_artifacts.py` (or equivalent local fixes summary)
 
 - Content Review result: PASS / PASS_WITH_DISCUSSION / RESEARCH_REQUIRED / REVISION_REQUIRED / RECONCILE_REQUIRED / BLOCKED
 - Reviewer mode: default (1 comprehensive) / high-risk (up to 3 lenses)
-- Review report path(s): `reviews/content-review-*.md`
+- Review report path(s): `reviews/content-review-<round>-<lens>.md`
 
 ### Content Review Findings
 

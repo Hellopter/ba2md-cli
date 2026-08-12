@@ -89,7 +89,7 @@ Write every user decision or free-form change to the Decision Map and list affec
 - Requirement or project scope changed: return to Requirement Intake or Project Discovery.
 - Wording-only change: rewrite directly.
 
-After rewriting, clear valid dirty markers and rerun the appropriate gate level: mechanical, local semantic, or full semantic. Re-enter Draft Review with a change summary and an updated critical backlog. Present a final candidate only after the required gate passes; generate the final document only after explicit user confirmation.
+After rewriting, clear valid dirty markers and rerun the appropriate gate level: mechanical precheck, local content review, or full content review. Re-enter Draft Review with a change summary and an updated critical backlog. Present a final candidate only after the required gate passes; generate the final document only after explicit user confirmation.
 
 ## User-Visible Evidence
 

@@ -39,9 +39,9 @@ Maintain this block in `research-plan.md`:
 - Blocking issues:
 - Repair attempts by issue:
 - Remaining search hypotheses:
-- Content review rounds:
-- Repair rounds:
-- Ready for Draft Review handoff:
+- content_review_round:
+- repair_rounds_by_finding_cluster:
+- Ready for Draft Review handoff: Yes/No
 - Last gate:
 ```
 
@@ -132,13 +132,16 @@ Content Review is the primary Quality Gate. Reviewers emit findings only; they
 do not edit the draft, promote FACTs, choose business outcomes, or declare Final.
 
 Default intensity: **one comprehensive adversarial reviewer** writing
-`reviews/content-review-*.md` (or the main agent writing that file from a single
-reviewer response). High-risk / Full Closure: up to **three lenses**. Detailed
-multi-lens merge rules live with the Content Review protocol; the structure here
+`reviews/content-review-<round>-<lens>.md` (or the main agent writing that file from a single
+reviewer response). High-risk / Full Closure: up to **three lenses**
+(`evidence-consistency`, `e2e-completeness`, `adversarial-refuter`). Detailed
+modes, I/O, multi-lens merge, and convergence caps live in
+`references/research-protocol.md` and `references/evidence-quality.md`; the structure here
 only requires that Content Review runs and routes before user handoff.
 
-Track in `gate-report.md` / Execution State: `Content review rounds`,
-`Repair rounds`, and `Ready for Draft Review handoff: Yes/No`.
+Track in `gate-report.md` / Execution State: `content_review_round` (max 3 before
+forced `BLOCKED` / `PASS_WITH_DISCUSSION`), `repair_rounds_by_finding_cluster`,
+and `Ready for Draft Review handoff: Yes/No`.
 
 ## Gate Routing Classes
 

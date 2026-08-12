@@ -22,7 +22,7 @@ Use `{SKILL_DIR}` for this skill directory and `{WORKSPACE}` for the project roo
 | Process artifact | `{WORKSPACE}/product/<slug>/briefs/<unit-id>.md` | Mandatory per research unit: frozen Unit Contract + search log + FOUND candidates. Empty `briefs/` after Research is a protocol failure. |
 | Process artifact | `{WORKSPACE}/product/<slug>/evidence-registry.md` | Evidence, claims, issues, decisions, and user-confirmed changes |
 | Process artifact | `{WORKSPACE}/product/<slug>/gate-report.md` | Latest quality-gate results: mechanical precheck + Content Review + routing / handoff |
-| Process artifact | `{WORKSPACE}/product/<slug>/reviews/content-review-*.md` | Content Review findings (primary gate); required before Draft Review handoff |
+| Process artifact | `{WORKSPACE}/product/<slug>/reviews/content-review-*.md` | Content review findings (`content-review-<round>-<lens>.md`); required before Draft Review handoff |
 | Deliverable | `{WORKSPACE}/product/<slug>/<slug>.draft.md` | Draft and final candidate |
 | Deliverable | `{WORKSPACE}/product/<slug>/<slug>.md` | Final document after explicit user confirmation |
 | Template package | `{SKILL_DIR}/templates/` | Replaceable document template and referenced section constraints |
@@ -37,8 +37,8 @@ Load resources only when entering the corresponding node:
 - Source discovery and selection: `references/project-discovery.md`
 - How to read the wiki (page roles, reading depth, trust boundary): `references/wiki-consumption.md`
 - Nodes, transitions, repair research, and user-led Draft Review: `references/execution-graph.md`
-- Research plan, subagents, briefs, and acceptance: `references/research-protocol.md`
-- Evidence IDs, verification, quality gates, and final admission: `references/evidence-quality.md`
+- Research plan, subagents, briefs, Content Review I/O/modes, and acceptance: `references/research-protocol.md`
+- Evidence IDs, verification, Content Review checks/merge, quality gates, and final admission: `references/evidence-quality.md`
 - Writing inputs, stop conditions, and section depth: `references/design-writing.md`
 - Active template: `templates/sdd.md` and only the section constraints referenced by that active template
 - Process artifact templates: `assets/*.md`
@@ -154,7 +154,7 @@ python3 {SKILL_DIR}/scripts/validate_artifacts.py \
 
 Fix only `MECHANICAL` issues locally and re-precheck. A mechanical PASS never authorizes Draft Review handoff and never skips Content Review.
 
-**Layer B — Content Review (primary).** After a readable draft exists, run Content Review against the draft, registry, briefs, research-plan, and active template. Default intensity: **one comprehensive adversarial reviewer**. High-risk / Full Closure: up to **three lenses**. Write findings to `product/<slug>/reviews/content-review-*.md` using `assets/content-review-report-template.md` and summarize them in `gate-report.md` using `assets/gate-report-template.md`. Reviewers emit findings only; they cannot edit the draft, promote FACTs, choose business outcomes, or declare Final.
+**Layer B — Content Review (primary).** After a readable draft exists, run Content Review against the draft, registry, briefs, research-plan, and active template. Read `references/research-protocol.md` (Content Review modes, I/O, merge, convergence) and `references/evidence-quality.md` (checklists). Default intensity: **one comprehensive adversarial reviewer**. High-risk / Full Closure: up to **three lenses** (`evidence-consistency`, `e2e-completeness`, `adversarial-refuter`). Write each pass to `product/<slug>/reviews/content-review-<round>-<lens>.md` using `assets/content-review-report-template.md` and summarize in `gate-report.md` using `assets/gate-report-template.md`. Reviewers emit findings only; they cannot edit the draft, promote FACTs, choose business outcomes, or declare Final. Chat-only review is invalid for high-risk; default may have the main agent write the report file, but the file must exist before handoff.
 
 Classify Content Review results and route:
 
@@ -164,7 +164,7 @@ Classify Content Review results and route:
 - `PASS` / `PASS_WITH_DISCUSSION` → Draft Review handoff authorized
 - `BLOCKED` (no remaining search hypothesis) → Draft Review with blocker package
 
-Set `Ready for Draft Review handoff: Yes` only when Content Review result is in `{PASS, PASS_WITH_DISCUSSION, BLOCKED}`.
+Set `Ready for Draft Review handoff: Yes` only when Content Review result is in `{PASS, PASS_WITH_DISCUSSION, BLOCKED}` and the current-round review file(s) exist. Cap `content_review_round` at 3 before forced `BLOCKED` or `PASS_WITH_DISCUSSION`; one repair unit per missing-fact cluster; another repair only on a new concrete search hypothesis.
 
 Rerun the appropriate gate after changes: mechanical precheck for mechanical edits, local content review for wording or section-only edits, and full content review for requirement scope, selected source(s), source evidence, API/schema/auth/data/event/rollback, critical GAP/CONFLICT, or final-candidate changes.
 
