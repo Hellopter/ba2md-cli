@@ -1,5 +1,22 @@
 # Research Brief: <unit-id>
 
+## Unit Contract (frozen before research; subagent must not edit)
+
+| Field | Value |
+|-------|-------|
+| Unit ID | |
+| Trigger | initial / repair |
+| Source ID or Boundary ID | |
+| Sources root (concrete) | `sources/<id>/...` |
+| Wiki pages allowed (optional) | |
+| Requirement excerpts / R-* IDs | |
+| Questions (bounded) | |
+| Expected fact types | FACT / GAP / CONFLICT only as candidates |
+| Out of scope | |
+| Must not guess | exact API paths, field names, symbols, thresholds, class names |
+| Output path | `briefs/<unit-id>.md` |
+| Done when | Evidence Candidates table filled OR bounded negative GAP with Search Log |
+
 ## Research Scope
 
 - Trigger type: initial research / repair research

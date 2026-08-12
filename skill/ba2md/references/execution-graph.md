@@ -7,8 +7,8 @@
 | Requirement Intake | User request, `requirements/`, active template folder | Requirement unit selected; path/hash/anchors recorded; goals, scope, constraints, acceptance, and non-goals captured; active template loaded | Project Discovery, User Decision |
 | Project Discovery | Requirement interpretation | Relevant sources selected from wiki discovery; known material boundaries recorded or GAPed | Research Plan, User Decision |
 | Research Plan | Selected sources and initial anchors | Units, dependencies, expected facts, graph state, and readiness level written | Research, Project Discovery |
-| Research | One bounded unit | Brief or direct notes produced with evidence candidates or bounded negative result | Brief Acceptance |
-| Brief Acceptance | Brief/direct notes + raw artifacts | Load-bearing candidates verified/rejected; registry and affected sections updated | Research, Evidence Reconcile, Project Discovery |
+| Research | One bounded unit | On-disk brief at `briefs/<unit-id>.md` with frozen Unit Contract, Search Log, and evidence candidates or bounded negative GAP | Brief Acceptance |
+| Brief Acceptance | Brief file + raw artifacts | Load-bearing candidates verified/rejected; registry and affected sections updated | Research, Evidence Reconcile, Project Discovery |
 | Evidence Reconcile | VERIFIED evidence and issues | Current-to-target decisions, alternatives, assumptions, conflicts, and GAPs recorded | Draft Writing, Research, User Decision |
 | Draft Writing | Registry, decisions, accepted evidence, active template | Draft sections contain traceable FACTs, explicit PROPOSALs/DECISIONs, and visible GAPs | Quality Gate, Repair Research, Project Discovery, User Decision |
 | Quality Gate | Draft + registry + process artifacts | Mechanical and semantic results classified and routed | Draft Review, Draft Writing, Repair Research, Evidence Reconcile, Project Discovery, User Decision |

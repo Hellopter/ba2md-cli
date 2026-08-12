@@ -19,7 +19,7 @@ Use `{SKILL_DIR}` for this skill directory and `{WORKSPACE}` for the project roo
 | Summary material | `{WORKSPACE}/wiki/<id>/` (logical projects may be nested one level) | Discovery/positioning digest spanning the source corpus: identities, ownership, boundaries, terminology. Read it to decide which sources a requirement touches |
 | Fact material | `{WORKSPACE}/sources/<id>/` | Managed source codebases (the corpus). Each selected source is a deep-research target and FACT root; fall back to `{WORKSPACE}/souces/` only when `sources/` is absent |
 | Process artifact | `{WORKSPACE}/product/<slug>/research-plan.md` | Requirement state, selected sources, research units, dirty sections, and gate state |
-| Process artifact | `{WORKSPACE}/product/<slug>/briefs/<unit-id>.md` | Initial or repair research brief when a brief is needed |
+| Process artifact | `{WORKSPACE}/product/<slug>/briefs/<unit-id>.md` | Mandatory per research unit: frozen Unit Contract + search log + FOUND candidates. Empty `briefs/` after Research is a protocol failure. |
 | Process artifact | `{WORKSPACE}/product/<slug>/evidence-registry.md` | Evidence, claims, issues, decisions, and user-confirmed changes |
 | Process artifact | `{WORKSPACE}/product/<slug>/gate-report.md` | Latest quality-gate results and routing decisions |
 | Deliverable | `{WORKSPACE}/product/<slug>/<slug>.draft.md` | Draft and final candidate |
@@ -103,7 +103,7 @@ Source roots are always concrete paths (`sources/<id>`, `wiki/<id>/<project>`), 
 
 Read `references/research-protocol.md`. Create `research-plan.md` with requirement interpretation, selected sources, initial anchors, research units, execution state, dirty sections, and blocking issues.
 
-Derive research units from implementation concerns, not from template sections. Use section constraints to decide what evidence the draft must contain. Never create one brief per template subsection mechanically. A tiny single-source task may use one consolidated brief.
+Derive research units from implementation concerns, not from template sections. Use section constraints to decide what evidence the draft must contain. Never create one brief per template subsection mechanically. Every completed research unit produces `briefs/<unit-id>.md` with a frozen `## Unit Contract` filled before research starts; a tiny single-source task may use one consolidated brief, never zero.
 
 Use a lightweight Draft Readiness Check for ordinary work. Use the heavier Full Closure Check only for high-risk changes: multi-service contract changes, database/schema migration, authorization/tenancy/security, money/accounting/audit, asynchronous events/jobs, release/rollback risk, or when the user requests complete impact analysis.
 
@@ -111,7 +111,7 @@ Use a lightweight Draft Readiness Check for ordinary work. Use the heavier Full 
 
 Delegate bounded, independent fact-finding units to subagents when it materially helps and when each unit has clear inputs and outputs. Default small or single-project work to the main agent. Use one source per unit unless the unit is an explicitly named cross-source boundary. Subagents return `FOUND` candidates and never write the final SDD.
 
-Each subagent research unit writes from `assets/research-brief-template.md`. The main agent must reopen load-bearing raw anchors before promoting candidates to `VERIFIED` in `evidence-registry.md`. Reject or repair briefs with unanchored identifiers, wiki-only implementation claims, mixed current/target behavior, unpropagated dependency discoveries, or unjustified `ADD` recommendations.
+Before dispatch, write each unit's brief with the Unit Contract filled. Every research unit — main-agent or subagent — updates only that brief file (`assets/research-brief-template.md`). Do not accept a subagent textual dump as a substitute for the on-disk brief. The main agent must reopen load-bearing raw anchors before promoting candidates to `VERIFIED` in `evidence-registry.md`. Reject or repair briefs with unanchored identifiers, wiki-only implementation claims, mixed current/target behavior, unpropagated dependency discoveries, or unjustified `ADD` recommendations.
 
 Build current-to-target decisions using `REUSE`, `MODIFY`, `EXTEND`, `ADD`, `DEPRECATE`, or `REMOVE`. Every `ADD` must name inspected existing seams and explain why they are insufficient.
 

@@ -2,7 +2,7 @@
 
 Use research to find raw facts that make the SDD implementable. Research units organize investigation; they are not document sections. Briefs summarize investigation; they never replace raw evidence.
 
-Use `assets/research-brief-template.md` when a brief is needed.
+Every completed research unit produces an on-disk brief at `product/<slug>/briefs/<unit-id>.md` from `assets/research-brief-template.md`. Tiny single-source work may use one consolidated brief; zero briefs after Research is a protocol failure.
 
 ## Research Plan Contract
 
@@ -48,8 +48,11 @@ Write `{WORKSPACE}/product/<slug>/research-plan.md`:
 |-----------|---------|------------------|------------|
 
 ## Research Units
-| Unit ID | Trigger | Source ID / Boundary | Concern | Questions | Expected facts | Dependencies | Status |
-|---------|---------|----------------------|---------|-----------|----------------|--------------|--------|
+| Unit ID | Trigger | Source ID / Boundary | Concern | Questions | Expected facts | Brief path | Dependencies | Status |
+|---------|---------|----------------------|---------|-----------|----------------|------------|--------------|--------|
+| | | | | | | `briefs/<unit-id>.md` | | |
+
+> Before a unit starts, write `briefs/<unit-id>.md` with the frozen `## Unit Contract` filled. Status may become done only after that brief exists on disk with Search Log and candidates or a bounded negative GAP.
 
 ## Execution State
 - Current node:
@@ -101,22 +104,43 @@ Use a cross-source unit only for an explicitly named integration boundary. State
 
 ## When a Brief Is Mandatory
 
-Create a brief when any condition holds:
+**Every completed research unit produces a brief file.** Main-agent and subagent units both write `product/<slug>/briefs/<unit-id>.md`. Tiny single-source work still produces **one** consolidated brief, not zero. Empty `briefs/` after Research is a protocol failure. The canonical `evidence-registry.md` is always required in addition to briefs.
 
-- a subagent performs research;
-- multiple sources are involved;
-- interface, schema, permission, limit, alert, migration, rollback, or other load-bearing facts are researched;
-- a spec/design/code conflict exists;
-- Draft Writing or Quality Gate triggers repair research;
-- an `ADD` decision needs existing-seam insufficiency evidence.
+## Research Unit I/O Contract
 
-For a tiny single-source task, use one consolidated brief. The canonical `evidence-registry.md` is always required, even when research is small.
+Every research unit — main-agent or subagent — is a pure file-backed job.
+
+### Input (must be explicit in the brief before work starts)
+- Unit Contract table (frozen)
+- requirement excerpt text or precise R-* anchors
+- concrete sources root
+- bounded questions / expected fact types
+- test exclusion rules
+- path to this brief file
+
+### Process
+- Search only under the assigned root (+ cited wiki pages if listed)
+- Write progress into THIS brief file only
+- Do not edit research-plan.md, evidence-registry.md, draft, or other briefs
+
+### Output (must exist on disk before unit status can become done)
+- `product/<slug>/briefs/<unit-id>.md` with:
+  - Unit Contract (unchanged)
+  - Search Log (at least one row, including negative searches)
+  - Evidence Candidates table (FOUND only for FACT) and/or Missing Material GAP rows
+- No FACT may be marked VERIFIED in the brief
+
+### Dispatch rule
+Before spawning a subagent, the main agent MUST write the brief file with Unit Contract filled.
+The subagent prompt MUST include the absolute brief path and say:
+"Read and update only this file. Your final action is saving this brief. Return only: BRIEF_WRITTEN <path> + candidate counts."
+Do not accept a subagent textual dump as a substitute for the brief file.
 
 ## Subagent Assignment
 
 Delegate only when the unit is independent, bounded, and has clear inputs/outputs. Default small or single-project work to the main agent. Do not delegate the immediate blocker if the next local step depends on it.
 
-Give each subagent:
+Give each subagent the Research Unit I/O Contract above, plus:
 
 - the relevant requirement excerpt and requirement ID;
 - exactly one Source ID, or one named cross-source boundary;
@@ -125,11 +149,11 @@ Give each subagent:
 - bounded questions and expected evidence types;
 - only relevant template constraints, never every section file;
 - the Java test exclusion: `test.java`, `src/test/`, `*Test.java`, `*Tests.java`, and `*IT.java`;
-- `assets/research-brief-template.md`;
+- absolute path to the pre-written brief file (`product/<slug>/briefs/<unit-id>.md` from `assets/research-brief-template.md`);
 - instruction to obey repository-local `AGENTS.md` and use context-graph tools before grep when available;
 - instruction to search only under the assigned source root and any cited wiki pages; do not run workspace-wide `sources/**` or `wiki/**` enumeration;
 - instruction to report contrary, missing, and insufficient evidence;
-- instruction not to edit the final design.
+- instruction not to edit the final design or the frozen Unit Contract section.
 
 Do not leak expected answers. A recommendation must follow investigation of existing seams.
 
