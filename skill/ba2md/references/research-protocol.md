@@ -244,7 +244,7 @@ Merge rule:
 - Union findings.
 - Deduplicate by `(section, problem fingerprint)`.
 - If `adversarial-refuter` refutes a load-bearing claim and others did not defend it with VERIFIED evidence → treat as EVIDENCE or REVISION required.
-- Majority is not enough to pass: any Critical unrefuted-attack that stands after main-agent recheck blocks handoff.
+- Majority is not enough to pass: any Critical unrefuted-attack that stands after main-agent recheck blocks `PASS` / clean handoff (it may still become a `BLOCKED` handoff after hypotheses are exhausted; see convergence).
 
 ### Content reviewer I/O
 
@@ -288,11 +288,18 @@ Track in `gate-report.md` / research-plan Execution State:
 
 Defaults:
 
-- max `content_review_round` = 3 before forced handoff-as-`BLOCKED` or `PASS_WITH_DISCUSSION` (main agent chooses by whether Critical must-fix items remain with no remaining search hypothesis)
+- max `content_review_round` = 3 before a forced exit (see forced-exit rules below)
 - one repair unit per missing-fact cluster (existing Repair Research rule)
 - another repair only on a new concrete search hypothesis
 
-After each repair/rewrite: rerun mechanical precheck + appropriate content review level (full after evidence/scope changes; local after wording-only). Increment `content_review_round` each time Content Review runs on a post-repair/post-rewrite candidate. Do not thrash the same finding cluster without a new hypothesis — convert to GAP / `BLOCKED` or surface as user-decidable `Q-*` when appropriate.
+After each repair/rewrite: rerun mechanical precheck + appropriate content review level (full after evidence/scope changes; local after wording-only). Increment `content_review_round` each time Content Review runs on a post-repair/post-rewrite candidate. Do not thrash the same finding cluster without a new hypothesis.
+
+**Forced-exit rules (when `content_review_round` hits the cap or no further hypothesis exists):**
+
+- Unrefuted Critical that is **agent-owned** (evidence, writing, reconcile, scope) and still has a concrete search/repair hypothesis → keep looping `RESEARCH_REQUIRED` / `REVISION_REQUIRED` / `RECONCILE_REQUIRED` while that hypothesis exists; the round cap does not authorize ignoring an open repair path.
+- At the round cap with Critical **agent-owned** issues remaining and **no** remaining search/repair hypothesis → forced handoff as `BLOCKED` (blocker package). Never use `PASS_WITH_DISCUSSION` to paper over unfixed Critical agent-owned attacks.
+- `PASS_WITH_DISCUSSION` only when remaining open items are user-owned backlog (`Q-*` / DECISION) or non-critical discussion — not unfixed Critical agent-owned attacks.
+- Surface factual GAPs as GAP/`BLOCKED` as appropriate; surface only truly user-decidable tradeoffs as `Q-*`.
 
 ### Main-agent merge and routing
 
@@ -301,8 +308,8 @@ After review file(s) exist:
 1. Fail closed if expected `reviews/content-review-<round>-*.md` files are missing.
 2. Union and dedupe findings; apply high-risk merge rules when multiple lenses ran.
 3. Adversarially spot-check top Critical/High findings (reopen anchors / seams).
-4. Drop findings that fail recheck; keep unrefuted Critical attacks that stand.
-5. Classify and route per `references/execution-graph.md` and `references/evidence-quality.md`.
+4. Drop findings that fail recheck; keep unrefuted Critical attacks that stand — they block `PASS` / clean handoff.
+5. Classify and route per `references/execution-graph.md` and `references/evidence-quality.md` (including forced-exit rules when the round cap is reached).
 6. Set `Ready for Draft Review handoff: Yes` only when Content Review result is in `{PASS, PASS_WITH_DISCUSSION, BLOCKED}`.
 
 ## Parallelism

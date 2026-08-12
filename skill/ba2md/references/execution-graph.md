@@ -139,9 +139,10 @@ modes, I/O, multi-lens merge, and convergence caps live in
 `references/research-protocol.md` and `references/evidence-quality.md`; the structure here
 only requires that Content Review runs and routes before user handoff.
 
-Track in `gate-report.md` / Execution State: `content_review_round` (max 3 before
-forced `BLOCKED` / `PASS_WITH_DISCUSSION`), `repair_rounds_by_finding_cluster`,
-and `Ready for Draft Review handoff: Yes/No`.
+Track in `gate-report.md` / Execution State: `content_review_round` (max 3;
+Critical agent-owned issues with a remaining hypothesis keep looping;
+cap + no hypothesis → `BLOCKED`, never paper over with `PASS_WITH_DISCUSSION`),
+`repair_rounds_by_finding_cluster`, and `Ready for Draft Review handoff: Yes/No`.
 
 ## Gate Routing Classes
 

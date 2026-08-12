@@ -128,16 +128,22 @@ Default reviewer must actively try to break the draft (unsupported precise IDs, 
 - Union findings across lenses.
 - Deduplicate by `(section, problem fingerprint)`.
 - If `adversarial-refuter` refutes a load-bearing claim and other lenses did not defend it with VERIFIED evidence → treat as EVIDENCE or REVISION required.
-- Majority is not enough to pass: any Critical unrefuted-attack that stands after main-agent recheck blocks handoff.
+- Majority is not enough to pass: any Critical unrefuted-attack that stands after main-agent recheck blocks `PASS` / clean handoff (it may still become a `BLOCKED` handoff after hypotheses are exhausted; see convergence).
 
 ### Repair ↔ review convergence
 
 Track `content_review_round` and `repair_rounds_by_finding_cluster` in
 `gate-report.md` / research-plan Execution State.
 
-- max `content_review_round` = 3 before forced handoff-as-`BLOCKED` or `PASS_WITH_DISCUSSION`
+- max `content_review_round` = 3 before a forced exit
 - one repair unit per missing-fact cluster; another repair only on a new concrete search hypothesis
 - after each repair/rewrite: mechanical precheck + appropriate content-review level (full after evidence/scope changes; local after wording-only)
+
+Forced-exit rules:
+
+- Unrefuted Critical **agent-owned** issue with a remaining search/repair hypothesis → keep looping RESEARCH/REVISION/RECONCILE; the round cap does not cancel an open hypothesis.
+- At the cap with Critical **agent-owned** issues remaining and **no** remaining hypothesis → `BLOCKED` handoff (not `PASS_WITH_DISCUSSION`).
+- `PASS_WITH_DISCUSSION` only for remaining user-owned backlog / non-critical discussion — never to paper over unfixed Critical agent-owned attacks.
 
 ## Gate Findings
 
@@ -148,7 +154,7 @@ Use these gate outcomes:
 | Outcome | Meaning |
 |---------|---------|
 | `PASS` | No revision required; still enter Draft Review to hand the floor |
-| `PASS_WITH_DISCUSSION` | Draft is presentable and carries a critical backlog for user-led review |
+| `PASS_WITH_DISCUSSION` | Draft is presentable; remaining items are user-owned backlog or non-critical discussion (not unfixed Critical agent-owned attacks) |
 | `RESEARCH_REQUIRED` | Evidence is missing, incorrect, or unverified — loop, do not hand off |
 | `REVISION_REQUIRED` | Evidence is sufficient but design expression or coverage needs revision — loop, do not hand off |
 | `RECONCILE_REQUIRED` | Authoritative sources or design choices are unresolved — loop, do not hand off |

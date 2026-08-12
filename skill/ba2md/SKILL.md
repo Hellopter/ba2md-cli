@@ -164,7 +164,7 @@ Classify Content Review results and route:
 - `PASS` / `PASS_WITH_DISCUSSION` → Draft Review handoff authorized
 - `BLOCKED` (no remaining search hypothesis) → Draft Review with blocker package
 
-Set `Ready for Draft Review handoff: Yes` only when Content Review result is in `{PASS, PASS_WITH_DISCUSSION, BLOCKED}` and the current-round review file(s) exist. Cap `content_review_round` at 3 before forced `BLOCKED` or `PASS_WITH_DISCUSSION`; one repair unit per missing-fact cluster; another repair only on a new concrete search hypothesis.
+Set `Ready for Draft Review handoff: Yes` only when Content Review result is in `{PASS, PASS_WITH_DISCUSSION, BLOCKED}` and the current-round review file(s) exist. Cap `content_review_round` at 3: keep looping while Critical agent-owned issues still have a search/repair hypothesis; at cap with no hypothesis, forced exit is `BLOCKED` (not `PASS_WITH_DISCUSSION`). Use `PASS_WITH_DISCUSSION` only for user-owned backlog / non-critical discussion. One repair unit per missing-fact cluster; another repair only on a new concrete search hypothesis.
 
 Rerun the appropriate gate after changes: mechanical precheck for mechanical edits, local content review for wording or section-only edits, and full content review for requirement scope, selected source(s), source evidence, API/schema/auth/data/event/rollback, critical GAP/CONFLICT, or final-candidate changes.
 
