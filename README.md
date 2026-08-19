@@ -34,7 +34,8 @@ ba2md discover --json
 ba2md doctor
 
 # Then run Claude or OpenCode in this workspace and invoke the ba2md Skill.
-# The Skill must run `ba2md discover --json` (or read workspace.yaml) before content search.
+# The Skill must run `ba2md discover --json` before content search,
+# write product/<slug>/wiki-plan.json, then `ba2md check --product product/<slug>`.
 ```
 
 ## Workspace layout
@@ -70,8 +71,9 @@ No workspace Git repo is initialized. Root `AGENTS.md` / `CLAUDE.md` are not mod
 | `ba2md requirement remove <name.md>` | Delete snapshot + registry entry |
 | `ba2md status` | Summarize resources and Skill installs |
 | `ba2md status --json` | Same summary as machine-readable JSON |
-| `ba2md discover` | Inventory managed sources/wiki and expand logical projects (nested wiki) |
-| `ba2md discover --json` | Machine-readable discovery inventory for Skill Project Discovery |
+| `ba2md discover` | Inventory managed sources/wiki; emit WikiSpec v2 page lists when the tree matches |
+| `ba2md discover --json` | Machine-readable inventory for Skill wiki consumption |
+| `ba2md check --product <dir>` | Tripwires for `wiki-plan.json`, non-empty `briefs/`, and content-review files |
 | `ba2md doctor` | Health checks; nonzero exit on problems |
 | `ba2md skill install` | Install/refresh Skill into `.agents` and `.claude` |
 | `ba2md skill status` | Show digests / drift |
@@ -93,7 +95,19 @@ Commands invoked below the workspace root walk upward to the nearest `workspace.
 
 ## AI generation
 
-Install Claude Code or OpenCode, open the initialized workspace, and use the **ba2md** Skill (`$ba2md`). The Skill starts Project Discovery from `ba2md discover --json` (or `workspace.yaml` + one-level listing), uses `wiki/<id>/` (and nested logical projects) for discovery, and uses `sources/<id>/` for implementation facts. It writes under `product/`. Agents must not enumerate projects with workspace-wide `sources/**` or `wiki/*.md` searches.
+Install Claude Code or OpenCode, open the initialized workspace, and use the **ba2md** Skill (`$ba2md`). Runtime:
+
+```text
+IR intake → wiki inventory (discover) → wiki-plan + wiki-position
+  → research briefs (batched sub-agents) → draft → content review → BA
+```
+
+- `ba2md discover --json` is the wiki/source inventory. A v2 wiki (`overview.md` / `<source>/source.md` / domain and concept clusters) is reported as `shape: wiki-spec-v2` with `spec.pages`. Nested docs monorepos without that topology still use `nested-projects`.
+- The Skill writes `product/<slug>/wiki-plan.json` (requirement-filtered WikiSpec) and `wiki-position.md` **before** source research. It must read every inventory `source.md` so cross-source collaboration is not missed.
+- Research units land in `product/<slug>/briefs/`. Content review lands in `product/<slug>/reviews/`. `ba2md check --product product/<slug>` enforces those tripwires; it does not replace content review.
+- BA is asked at scope lock only when the wiki match is ambiguous; after content review the BA leads draft iteration. Finalize only on explicit confirmation.
+
+Agents must not enumerate projects with workspace-wide `sources/**` or `wiki/*.md` searches. Wiki is positioning (`SUMMARY`); precise current identifiers need `FACT` anchors under `sources/<id>/`.
 
 ## Development
 

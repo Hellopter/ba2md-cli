@@ -7,4 +7,5 @@ export { addRequirement, listRequirements, removeRequirement } from './requireme
 export { installSkill, inspectSkillInstalls, repairSkill } from './skill/install.js';
 export { collectStatus } from './diagnostics/status.js';
 export { collectDiscover } from './diagnostics/discover.js';
+export { checkProduct } from './diagnostics/check.js';
 export { runDoctor } from './diagnostics/doctor.js';

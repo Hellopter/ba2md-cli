@@ -40,6 +40,10 @@ describe('init and discovery', () => {
     const skillText = await fsp.readFile(path.join(root, '.agents/skills/ba2md/SKILL.md'), 'utf8');
     assert.match(skillText, /requirements\/\*\.md/);
     assert.doesNotMatch(skillText, /requirements\/\*\*\/\*\.md/);
+    assert.equal(await pathExists(path.join(root, '.agents/skills/ba2md/references/wiki.md')), true);
+    assert.equal(await pathExists(path.join(root, '.agents/skills/ba2md/grilling')), false);
+    assert.equal(await pathExists(path.join(root, '.agents/skills/ba2md/scripts')), false);
+    assert.equal(await pathExists(path.join(root, '.agents/skills/ba2md/agents')), false);
   });
 
   it('re-init is non-destructive', async () => {
