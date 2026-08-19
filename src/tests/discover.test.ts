@@ -82,71 +82,21 @@ describe('discover inventory', () => {
     );
   });
 
-  it('emits a v2 wiki spec from source/domain/concept pages', async () => {
+  it('does not require select-or-exclude of every managed source', async () => {
     const cwd = await makeTempDir();
     const { root } = await initWorkspace('ws', cwd);
-    const docs = path.join(cwd, 'docs');
-    await writeFile(path.join(docs, 'overview.md'), '# overview\n');
-    await writeFile(path.join(docs, 'architecture.md'), '# architecture\n');
-    await writeFile(path.join(docs, 'billing', 'source.md'), '# billing\n');
-    await writeFile(path.join(docs, 'billing', 'payments', 'domain.md'), '# payments\n');
-    await writeFile(
-      path.join(docs, 'billing', 'payments', 'checkout', 'concept.md'),
-      '# checkout\n',
-    );
-    await writeFile(path.join(docs, 'orders', 'source.md'), '# orders\n');
-    await writeFile(path.join(docs, 'orders', 'checkout', 'domain.md'), '# checkout\n');
-    await addWiki(root, docs, { id: 'docs' });
+    const a = path.join(cwd, 'svc-a');
+    const b = path.join(cwd, 'svc-b');
+    await fsp.mkdir(a);
+    await fsp.mkdir(b);
+    await writeFile(path.join(a, 'pom.xml'), '<project/>\n');
+    await writeFile(path.join(b, 'package.json'), '{}\n');
+    await addSource(root, a, { id: 'svc-a' });
+    await addSource(root, b, { id: 'svc-b' });
 
     const config = await readWorkspaceConfig(root);
     const report = await collectDiscover(root, config);
-    const wiki = report.wiki[0];
-    assert.equal(wiki.shape, 'wiki-spec-v2');
-    assert.ok(wiki.wikiSpec);
-    assert.deepEqual(wiki.wikiSpec.sources, ['billing', 'orders']);
-    assert.ok(wiki.wikiSpec.spec.pages.includes('billing/source.md'));
-    assert.ok(wiki.wikiSpec.spec.pages.includes('orders/checkout/domain.md'));
-    assert.match(formatDiscover(report), /wiki-spec-v2/);
-    assert.match(formatDiscover(report), /2 sources/);
     assert.doesNotMatch(formatDiscover(report), /select or exclude/);
-  });
-
-  it('reports drift when committed wiki-spec.json disagrees with disk', async () => {
-    const cwd = await makeTempDir();
-    const { root } = await initWorkspace('ws', cwd);
-    const docs = path.join(cwd, 'docs');
-    await writeFile(path.join(docs, 'overview.md'), '# overview\n');
-    await writeFile(path.join(docs, 'billing', 'source.md'), '# billing\n');
-    await writeFile(path.join(docs, 'billing', 'payments', 'domain.md'), '# payments\n');
-    await writeFile(
-      path.join(docs, 'wiki-spec.json'),
-      JSON.stringify({
-        topologyVersion: 2,
-        pages: ['overview.md', 'billing/source.md'],
-      }),
-    );
-    await addWiki(root, docs, { id: 'docs' });
-
-    const config = await readWorkspaceConfig(root);
-    const report = await collectDiscover(root, config);
-    const wiki = report.wiki[0];
-    assert.equal(wiki.shape, 'wiki-spec-v2');
-    assert.ok(wiki.wikiSpec?.committedSpecDrift?.extraOnDisk.includes('billing/payments/domain.md'));
-    assert.match(formatDiscover(report), /drift:/);
-  });
-
-  it('keeps nested-projects fallback when the tree is not wiki-spec v2', async () => {
-    const cwd = await makeTempDir();
-    const { root } = await initWorkspace('ws', cwd);
-    const docs = path.join(cwd, 'docs');
-    await writeFile(path.join(docs, 'billing', 'overview.md'), '# billing\n');
-    await writeFile(path.join(docs, 'orders', 'index.md'), '# orders\n');
-    await addWiki(root, docs, { id: 'docs' });
-
-    const config = await readWorkspaceConfig(root);
-    const report = await collectDiscover(root, config);
-    assert.equal(report.wiki[0].shape, 'nested-projects');
-    assert.equal(report.wiki[0].wikiSpec, undefined);
   });
 
   it('reports unregistered orphan directories under sources/ and wiki/', async () => {

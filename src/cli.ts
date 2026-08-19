@@ -177,9 +177,7 @@ async function main(): Promise<void> {
 
   program
     .command('discover')
-    .description(
-      'Inventory managed sources/wiki and emit WikiSpec v2 page lists when the tree matches',
-    )
+    .description('Inventory managed sources/wiki and expand logical projects')
     .option('--json', 'emit machine-readable JSON')
     .action(async (options: { json?: boolean }) => {
       const { root, config } = await requireWorkspace();
@@ -193,7 +191,7 @@ async function main(): Promise<void> {
 
   program
     .command('check')
-    .description('Tripwire checks for a product/<slug> directory (wiki-plan, briefs, content review)')
+    .description('Tripwire checks for a product/<slug> directory (briefs, content review)')
     .requiredOption('--product <dir>', 'product directory, e.g. product/foo-sdd')
     .action(async (options: { product: string }) => {
       const { root } = await requireWorkspace();

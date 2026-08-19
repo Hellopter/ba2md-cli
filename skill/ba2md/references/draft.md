@@ -22,7 +22,7 @@ Place evidence or claim IDs next to load-bearing statements.
 ba2md check --product product/<slug>
 ```
 
-This checks: wiki-plan legality; non-empty `briefs/` after accepted units; a `reviews/content-review-*.md` file when a draft exists. It does not judge design quality. Fix `ERROR`s locally and re-run. A check PASS never authorizes BA handoff.
+This checks: non-empty `briefs/` after accepted units; a `reviews/content-review-*.md` file when a draft exists. It does not parse wiki layout and does not judge design quality. Fix `ERROR`s locally and re-run. A check PASS never authorizes BA handoff.
 
 ## Content Review (primary)
 

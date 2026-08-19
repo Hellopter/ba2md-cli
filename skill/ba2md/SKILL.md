@@ -1,6 +1,6 @@
 ---
 name: ba2md
-description: "Create an implementable, source-grounded Software Detailed Design from Markdown requirements. Consume the wiki (WikiSpec v2 inventory → requirement wiki-plan) to locate owning and collaborating sources, dispatch sub-agents to write research briefs, synthesize an evidence-verified SDD, run content review, then hand the draft to the BA. Use for $ba2md, BA-to-SDD conversion, existing-system detailed design, and multi-source wiki-plus-source investigation. Do not use to create or rewrite BA or requirement documents."
+description: "Create an implementable, source-grounded Software Detailed Design from Markdown requirements. Read the mounted wiki (overview, every source.md, then requirement-relevant domains/concepts) to locate owning and collaborating sources, dispatch sub-agents to write research briefs, synthesize an evidence-verified SDD, run content review, then hand the draft to the BA. Use for $ba2md, BA-to-SDD conversion, existing-system detailed design, and multi-source wiki-plus-source investigation. Do not use to create or rewrite BA or requirement documents."
 ---
 
 # Generate Source-Grounded Detailed Designs
@@ -15,11 +15,11 @@ Use `{SKILL_DIR}` for this skill directory and `{WORKSPACE}` for the project roo
 |------|------|---------|
 | Requirement input | `{WORKSPACE}/requirements/*.md` | Read-only. Explicit files, title/keyword match, or flat directory queue |
 | Workspace registry | `{WORKSPACE}/workspace.yaml` | Managed ids for sources, wiki, requirements |
-| Inventory | `ba2md discover --json` | Managed entries + WikiSpec v2 page lists. Run before content search |
-| Tripwires | `ba2md check --product product/<slug>` | wiki-plan legality, non-empty briefs after accepted units, content-review file on a draft |
+| Inventory | `ba2md discover --json` | Managed source/wiki ids and shallow layout. Run before content search |
+| Tripwires | `ba2md check --product product/<slug>` | Non-empty briefs after accepted units; content-review file on a draft |
 | Wiki | `{WORKSPACE}/wiki/<id>/` | Discovery/positioning digest. SUMMARY only |
 | Sources | `{WORKSPACE}/sources/<id>/` | FACT roots. Fall back to `{WORKSPACE}/souces/` only when `sources/` is absent |
-| Wiki plan | `{WORKSPACE}/product/<slug>/wiki-plan.json` | Requirement-filtered WikiSpec. Required before source research |
+| Wiki plan | `{WORKSPACE}/product/<slug>/wiki-plan.json` | Wiki-relative pages scheduled for this IR. Required before source research |
 | Wiki position | `{WORKSPACE}/product/<slug>/wiki-position.md` | Owning/collaborating sources, vocabulary, wiki GAPs |
 | Research plan | `{WORKSPACE}/product/<slug>/research-plan.md` | Units, execution state, dirty sections |
 | Briefs | `{WORKSPACE}/product/<slug>/briefs/<unit-id>.md` | Frozen Unit Contract + search log + FOUND candidates. Empty `briefs/` after Research is a protocol failure |
@@ -54,7 +54,7 @@ Exclude Java tests from source analysis: `test.java`, `**/src/test/**`, `**/*Tes
 
 ```text
 Requirement Intake
-  → Wiki Consumption          # discover inventory → wiki-plan → read → wiki-position
+  → Wiki Consumption          # mounted wiki → wiki-plan → read → wiki-position
   → Scope Lock                # BA only if ambiguous / cross-source fork
   → Research Plan
   → Research (batched)        # subagents write briefs/<unit>.md; return summaries
@@ -84,7 +84,7 @@ Read the active `templates/sdd.md`. Use only sections it references. The templat
 
 Read `references/wiki.md`. **Mandatory first action:** `ba2md discover --json` (fallback: `workspace.yaml` + one-level listing). Do not grep `sources/**` or `wiki/**` to decide what exists.
 
-Build `wiki-plan.json` (WikiSpec subset for this IR) and `wiki-position.md` (owning sources, collaborating sources or “none”, vocabulary, wiki GAPs). Read every `source.md` in the inventory. No wiki-plan → do not dispatch source research.
+Build `wiki-plan.json` (pages you will read) and `wiki-position.md` (owning sources, collaborating sources or “none”, vocabulary, wiki GAPs). Read every `source.md`. No wiki-plan → do not dispatch source research. Layout lives in `references/wiki.md`, not in the CLI.
 
 Starting sources come from wiki-position. Research may add sources when evidence surfaces them. Ask the BA at Scope Lock only when a wrong answer would send research to the wrong tree.
 
@@ -110,7 +110,7 @@ Present the review package and hand the floor. BA leads. Classify comments and i
 - Write prose in the workspace language; keep identifiers verbatim.
 - Start from `ba2md discover --json`; forbid workspace-wide `sources/**` or `wiki/*` enumeration.
 - Do not start source research without `wiki-plan.json` and `wiki-position.md`.
-- Read every inventory `source.md` before locking starting sources.
+- Read every `source.md` under the mounted wiki before locking starting sources.
 - Wiki is SUMMARY; only `VERIFIED` FACT describes precise current identifiers or behavior.
 - Briefs and content-review findings are inputs, not final evidence.
 - Record unsupported content as GAP; never fabricate or ask the BA to guess facts.

@@ -1,10 +1,6 @@
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { isDirectory, pathExists } from '../utils/fs.js';
-import { inspectWikiPlan } from '../wiki/spec.js';
-import { collectDiscover } from './discover.js';
-import type { WorkspaceConfig } from '../workspace/schema.js';
-import { readWorkspaceConfig } from '../workspace/config.js';
 
 const DONE_STATUS_RE = /^(done|accepted|complete|ready.?for.?acceptance|closed)$/i;
 const PROCESS_MARKDOWN = new Set([
@@ -24,7 +20,6 @@ export interface CheckReport {
 export async function checkProduct(
   workspaceRoot: string,
   productDir: string,
-  config?: WorkspaceConfig,
 ): Promise<CheckReport> {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -39,14 +34,9 @@ export async function checkProduct(
     };
   }
 
-  const resolvedConfig = config ?? (await readWorkspaceConfig(workspaceRoot));
-  const discover = await collectDiscover(workspaceRoot, resolvedConfig);
-  const inventoryPages = discover.wiki.flatMap((entry) => entry.wikiSpec?.spec.pages ?? []);
-
-  await checkWikiPlan(absoluteProduct, inventoryPages, errors);
   const planText = await readOptional(path.join(absoluteProduct, 'research-plan.md'));
   await checkBriefs(absoluteProduct, planText, errors);
-  await checkContentReview(absoluteProduct, errors, warnings);
+  await checkContentReview(absoluteProduct, errors);
 
   return {
     ok: errors.length === 0,
@@ -69,26 +59,6 @@ export function formatCheck(report: CheckReport): string {
   return lines.join('\n');
 }
 
-async function checkWikiPlan(
-  productDir: string,
-  inventoryPages: string[],
-  errors: string[],
-): Promise<void> {
-  const planPath = path.join(productDir, 'wiki-plan.json');
-  if (!(await pathExists(planPath))) return;
-  let raw: unknown;
-  try {
-    raw = JSON.parse(await fsp.readFile(planPath, 'utf8')) as unknown;
-  } catch (error) {
-    errors.push(`wiki-plan.json is not valid JSON: ${(error as Error).message}`);
-    return;
-  }
-  const inspected = inspectWikiPlan(raw, inventoryPages);
-  if (inspected.defects.length) {
-    errors.push(...inspected.defects.map((defect) => `wiki-plan.json: ${defect}`));
-  }
-}
-
 async function checkBriefs(
   productDir: string,
   planText: string | undefined,
@@ -104,11 +74,7 @@ async function checkBriefs(
   }
 }
 
-async function checkContentReview(
-  productDir: string,
-  errors: string[],
-  _warnings: string[],
-): Promise<void> {
+async function checkContentReview(productDir: string, errors: string[]): Promise<void> {
   const entries = await fsp.readdir(productDir);
   const hasDraft = entries.some((name) => name.endsWith('.draft.md'));
   const hasFinal = entries.some(

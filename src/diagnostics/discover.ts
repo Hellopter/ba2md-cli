@@ -9,8 +9,6 @@ import {
   resolveWikiPath,
 } from '../utils/workspace-path.js';
 import type { WorkspaceConfig } from '../workspace/schema.js';
-import { collectWikiWalk, isWikiSpecV2Inventory, type WikiWalkResult } from '../wiki/walk.js';
-import type { WikiSpec } from '../wiki/spec.js';
 
 const ENTRY_PAGE_NAMES = new Set([
   'index.md',
@@ -36,21 +34,7 @@ const SOURCE_IDENTITY_FILES = new Set([
   'makefile',
 ]);
 
-export type EntryShape =
-  | 'single'
-  | 'nested-projects'
-  | 'empty'
-  | 'missing'
-  | 'mixed'
-  | 'wiki-spec-v2';
-
-export interface WikiSpecInventory {
-  spec: WikiSpec;
-  defects: string[];
-  sources: string[];
-  domains: string[];
-  committedSpecDrift?: WikiWalkResult['committedSpecDrift'];
-}
+export type EntryShape = 'single' | 'nested-projects' | 'empty' | 'missing' | 'mixed';
 
 export interface LogicalProject {
   path: string;
@@ -76,7 +60,6 @@ export interface ManagedWikiInventory {
   shape: EntryShape;
   logicalProjects: LogicalProject[];
   notes: string[];
-  wikiSpec?: WikiSpecInventory;
 }
 
 export interface DiscoverReport {
@@ -325,25 +308,6 @@ async function inspectWikiEntry(
     logicalProjects = [rootProject];
   }
 
-  const walked = await collectWikiWalk(absolute);
-  let wikiSpec: WikiSpecInventory | undefined;
-  if (isWikiSpecV2Inventory(walked.pages) && walked.spec) {
-    shape = 'wiki-spec-v2';
-    wikiSpec = {
-      spec: walked.spec,
-      defects: walked.defects,
-      sources: walked.sources,
-      domains: walked.domains,
-      committedSpecDrift: walked.committedSpecDrift,
-    };
-    notes.push(
-      `wiki-spec v2: ${walked.spec.pages.length} pages, ${walked.sources.length} sources, ${walked.domains.length} domains`,
-    );
-    for (const defect of walked.defects) {
-      notes.push(`wiki-spec: ${defect}`);
-    }
-  }
-
   return {
     id,
     type,
@@ -352,7 +316,6 @@ async function inspectWikiEntry(
     shape,
     logicalProjects,
     notes,
-    wikiSpec,
   };
 }
 
@@ -384,16 +347,10 @@ export async function collectDiscover(
   const guidance = [
     'Use this inventory before any workspace-wide content search.',
     'Source and wiki roots must be concrete paths such as sources/<id> or wiki/<id>[/<project>], never bare sources/ or wiki/.',
-    'When a wiki entry is shape=wiki-spec-v2, consume spec.pages as the page inventory; do not glob wiki/** to enumerate pages.',
     'Selection is progressive: start from wiki-position sources. Do not pre-exclude every managed source.',
     'Do not enumerate projects with grep/Glob on sources/** or wiki/*.',
   ];
 
-  if (wiki.some((item) => item.shape === 'wiki-spec-v2')) {
-    guidance.push(
-      'Read every source.md in a v2 wiki inventory before locking starting sources; collaboration is cheap to miss.',
-    );
-  }
   if (wiki.some((item) => item.shape === 'nested-projects')) {
     guidance.push(
       'One or more wiki entries use nested-projects layout; logical projects are child directories, not wiki/*.md.',
@@ -449,26 +406,6 @@ export function formatDiscover(report: DiscoverReport): string {
     for (const item of report.wiki) {
       const status = item.ok ? 'OK' : 'MISSING';
       lines.push(`  - ${item.id} [${item.type}] ${item.path} ${status} shape=${item.shape}`);
-      if (item.wikiSpec) {
-        const spec = item.wikiSpec;
-        lines.push(
-          `      spec: ${spec.spec.pages.length} pages, ${spec.sources.length} sources, ${spec.domains.length} domains`,
-        );
-        if (spec.defects.length) {
-          for (const defect of spec.defects) {
-            lines.push(`      defect: ${defect}`);
-          }
-        }
-        if (spec.committedSpecDrift) {
-          const extra = spec.committedSpecDrift.extraOnDisk.length
-            ? ` extra on disk=${spec.committedSpecDrift.extraOnDisk.length}`
-            : '';
-          const missing = spec.committedSpecDrift.missingOnDisk.length
-            ? ` missing on disk=${spec.committedSpecDrift.missingOnDisk.length}`
-            : '';
-          lines.push(`      drift:${extra}${missing}`);
-        }
-      }
       for (const project of item.logicalProjects) {
         const pages =
           project.entryPages.length > 0

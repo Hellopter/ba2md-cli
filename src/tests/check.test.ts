@@ -3,7 +3,7 @@ import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 import { initWorkspace } from '../workspace/init.js';
-import { addSource, addWiki } from '../resources/source.js';
+import { addSource } from '../resources/source.js';
 import { checkProduct, formatCheck } from '../diagnostics/check.js';
 import { makeTempDir, writeFile } from './helpers.js';
 
@@ -102,49 +102,5 @@ describe('ba2md check', () => {
     const report = await checkProduct(root, 'product/demo-sdd');
     assert.equal(report.ok, true, formatCheck(report));
     assert.doesNotMatch(formatCheck(report), /svc-b/);
-  });
-
-  it('fails wiki-plan.json pages that are not in the v2 inventory', async () => {
-    const cwd = await makeTempDir();
-    const { root } = await initWorkspace('ws', cwd);
-    const docs = path.join(cwd, 'docs');
-    await writeFile(path.join(docs, 'overview.md'), '# o\n');
-    await writeFile(path.join(docs, 'billing', 'source.md'), '# b\n');
-    await writeFile(path.join(docs, 'billing', 'payments', 'domain.md'), '# d\n');
-    await addWiki(root, docs, { id: 'docs' });
-    const dir = await productDir(root);
-    await writeFile(
-      path.join(dir, 'wiki-plan.json'),
-      JSON.stringify({
-        topologyVersion: 2,
-        pages: ['overview.md', 'ghost/source.md'],
-      }),
-    );
-
-    const report = await checkProduct(root, 'product/demo-sdd');
-    assert.equal(report.ok, false);
-    assert.ok(report.errors.some((e) => /ghost\/source\.md/.test(e)));
-  });
-
-  it('passes a wiki-plan subset of the inventory', async () => {
-    const cwd = await makeTempDir();
-    const { root } = await initWorkspace('ws', cwd);
-    const docs = path.join(cwd, 'docs');
-    await writeFile(path.join(docs, 'overview.md'), '# o\n');
-    await writeFile(path.join(docs, 'billing', 'source.md'), '# b\n');
-    await writeFile(path.join(docs, 'orders', 'source.md'), '# o2\n');
-    await writeFile(path.join(docs, 'billing', 'payments', 'domain.md'), '# d\n');
-    await addWiki(root, docs, { id: 'docs' });
-    const dir = await productDir(root);
-    await writeFile(
-      path.join(dir, 'wiki-plan.json'),
-      JSON.stringify({
-        topologyVersion: 2,
-        pages: ['overview.md', 'billing/source.md'],
-      }),
-    );
-
-    const report = await checkProduct(root, 'product/demo-sdd');
-    assert.equal(report.ok, true, formatCheck(report));
   });
 });
