@@ -4,5 +4,8 @@ dist/
 .DS_Store
 coverage/
 .tmp
+diagrams/
+tmp/
+docs/
 .ai-collab/
 .claude/
