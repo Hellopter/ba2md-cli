@@ -98,13 +98,17 @@ Install Claude Code or OpenCode, open the initialized workspace, and use the **b
 
 ```text
 IR intake → wiki inventory (discover) → wiki-plan + wiki-position
-  → research briefs (batched sub-agents) → draft → content review → BA
+  → Gate A confirm sources → research briefs (spawn by scale)
+  → draft → spawned structure + evidence review → BA handoff
 ```
 
+- The packaged Skill (`skill/ba2md/`) is Chinese. `{SKILL_DIR}/templates/` (`sdd.md` + `sections/`) may be replaced wholesale by an internal pack — **same layout, different markdown bodies**.
 - `ba2md discover --json` lists mounted `sources/<id>` and `wiki/<id>` (and nested docs layouts). It does not parse wiki page types — that layout lives in the Skill (`references/wiki.md`).
 - The Skill reads `overview.md`, every `<source>/source.md`, then requirement-relevant domains/concepts, and writes `product/<slug>/wiki-plan.json` + `wiki-position.md` **before** source research.
-- Research units land in `product/<slug>/briefs/`. Content review lands in `product/<slug>/reviews/`. `ba2md check --product product/<slug>` enforces those tripwires; it does not replace content review.
-- BA is asked at scope lock only when the wiki match is ambiguous; after content review the BA leads draft iteration. Finalize only on explicit confirmation.
+- If intake did not name source repos, Gate A asks the BA to confirm the `sources/<id>` list before briefs.
+- Research units land in `product/<slug>/briefs/`. Spawn is by disjoint source root and scale (`references/research.md`), not one child per template section.
+- Content review is two spawned files under `product/<slug>/reviews/` (`content-review-<round>-structure.md` and `-evidence.md`). The main session does not author those files. `ba2md check --product product/<slug>` enforces tripwires; it does not replace content review.
+- After review passes, the Skill presents a menu and waits. BA comments route to the earliest node; then review is spawned again and a delta is presented. Finalize only on explicit confirmation.
 
 Agents must not enumerate projects with workspace-wide `sources/**` or `wiki/*.md` searches. Wiki is positioning (`SUMMARY`); precise current identifiers need `FACT` anchors under `sources/<id>/`.
 

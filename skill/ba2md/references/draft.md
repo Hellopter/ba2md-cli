@@ -1,113 +1,126 @@
-# Draft, Content Review, and BA Loop
+# Draft、内容审查与 BA 循环
 
-## Writing
+## 写作
 
-Treat `{SKILL_DIR}/templates/` as the sole document-structure authority. Use only sections referenced by `templates/sdd.md`. The template supplies no facts.
+按此顺序读文件，然后写 `{slug}.draft.md`。模板提供结构，不提供事实。
 
-Preconditions: wiki-plan/position exist; required units are accepted or GAP’d; registry is current; no load-bearing current fact remains only `FOUND` / `STALE` / `REJECTED`.
+1. 打开 `product/<slug>/research-plan.md` 里的覆盖计划。
+2. 读 `{SKILL_DIR}/templates/sdd.md`（内部包保持此路径；正文可能不同）。
+3. 每个 RELEVANT 行：读 sdd.md 点名的 `{SKILL_DIR}/templates/sections/<file>`，按该文件的输出格式写（`Output Format` / `输出格式`）。
+4. N/A 节：一行理由或按约束省略。
+5. 草稿头写 `Constraints read:`（`sdd.md` + 读过的每个节文件）。无清单则本步未完成，不得进入审查。
 
-For each relevant template item: is it a current FACT, target PROPOSAL, or DECISION? Current facts need `VERIFIED` anchors. Otherwise GAP or a responsible PROPOSAL. Irrelevant sections stay blank/N/A/omitted as the template permits. Never fabricate because a heading exists.
+前置：wiki-plan/position 与已确认源存在；覆盖计划已填；必做 unit 已验收或 GAP；registry 为当前；没有承载当前事实仍停在 `FOUND` / `STALE` / `REJECTED`。
 
-Separate current (`F-*`), target (`P-*`), and decision (`D-*`). Prefer `REUSE` / `MODIFY` / `EXTEND`. Every `ADD` lists examined seams and why they are insufficient.
+每个 RELEVANT 模板项：当前 FACT、目标 PROPOSAL，还是 DECISION？当前事实需要 `VERIFIED` 锚点。否则 GAP 或有主的 PROPOSAL。不因为有标题就编造。
 
-Cover dimensions the IR actually needs: entry/authz/validation; orchestration/state; persistence/transactions; interface fields/errors; events/jobs; logs/metrics/alerts; migration/rollout/rollback; tests.
+当前（`F-*`）、目标（`P-*`）、决策（`D-*`）分开。优先 `REUSE` / `MODIFY` / `EXTEND`。每个 `ADD` 列出检查过的缝及为何不够。
 
-Stop the affected section and repair-research when a load-bearing fact is missing (route, field, symbol, schema, permission, limit, alert, either boundary endpoint). If bounded research converges empty, record a GAP. Do not turn factual GAPs into BA questions.
+覆盖 IR 实际需要的维度：入口/鉴权/校验；编排/状态；持久化/事务；接口字段/错误；事件/任务；日志/指标/告警；迁移/发布/回滚；测试。
 
-Place evidence or claim IDs next to load-bearing statements.
+缺承载事实（路由、字段、符号、schema、权限、限额、告警、边界任一端）则停该节并补研究。有界研究收敛为空则记 GAP。事实 GAP 留在草稿里，不是拿去问 BA 的 trivia。
 
-## Mechanical precheck (subordinate)
+承载句旁放证据或主张 ID。
+
+## 机械预检（从属）
 
 ```bash
 ba2md check --product product/<slug>
 ```
 
-This checks: non-empty `briefs/` after accepted units; a `reviews/content-review-*.md` file when a draft exists. It does not parse wiki layout and does not judge design quality. Fix `ERROR`s locally and re-run. A check PASS never authorizes BA handoff.
+检查：已验收 unit 则 `briefs/` 非空；有 draft 则有 `reviews/content-review-*.md`。不解析 wiki 布局，不评判设计质量。本地修 `ERROR` 再跑。check PASS 不能授权交给 BA。
 
-## Content Review (primary)
+## 内容审查（循环 A）— 必须派子代理
 
-Run on every readable draft. Reviewers emit findings only — they do not edit the draft, promote FACTs, choose business outcomes, or declare Final.
+每个可读草稿都要跑。审查员只写 findings——不改草稿、不提升 FACT、不选业务结果、不定终稿。
 
-Default: one comprehensive adversarial reviewer. High-risk / Full Closure: up to three lenses in parallel — `evidence-consistency`, `e2e-completeness`, `adversarial-refuter`.
+**主会话不写审查 findings。** 草稿作者写的 `content-review-*.md` 不算完成本步。
 
-Output: `product/<slug>/reviews/content-review-<round>-<lens>.md` from `assets/content-review-report-template.md`. Return `REVIEW_WRITTEN <path>` + finding counts. Chat-only review is invalid for high-risk; default may have the main agent write the file from one response, but the file must exist.
+每轮并行派 **两个** 孩子。先把 `{SKILL_DIR}/assets/content-review-report-template.md` 拷到各路径，填好合同（角色、路径、轮次）。
 
-Attack at least: unsupported precise identifiers; wiki/REQUIREMENT used as current implementation; `ADD` without seam insufficiency; missing failure/auth/rollback when relevant; brief claims not traceable in registry/draft.
+| 角色 | 输出 | 打开 | 打什么 |
+|------|------|------|--------|
+| 结构 | `reviews/content-review-<round>-structure.md` | 覆盖计划、`templates/sdd.md`、每个 RELEVANT `templates/sections/*.md`、草稿 | 每个 RELEVANT 节符合该文件 Output Format / 输出格式；每条 Quality Gate / 质量门成立或有 finding；未读约束或空的 RELEVANT 节 → `REVISION_REQUIRED`。填 Coverage gates。 |
+| 证据 | `reviews/content-review-<round>-evidence.md` | 草稿、registry、覆盖计划；仅当 ID 不在 registry 时打开对应 brief | 精确标识有 `VERIFIED` 锚点；未把 wiki/REQUIREMENT 写成当前实现；`ADD` 写了检查过的缝；brief 主张能对上 registry/draft。抽查草稿里的 ID。只在指定产物路径下搜；本角色不 grep `sources/`（那是调研）。 |
 
-Merge multi-lens reports by union; dedupe by `(section, problem fingerprint)`. Majority is not enough to pass: any Critical unrefuted attack that stands after main-agent recheck blocks clean handoff.
+每个孩子的 prompt 含绝对输出路径，以及：「只读并更新这一文件。只返回：`REVIEW_WRITTEN <path>` + finding 计数。」
 
-Route:
+高风险 / Full Closure / 用户要求：允许第三孩子 `adversarial-refuter` → `content-review-<round>-adversarial.md`。同样派遣，仍不是主会话。
 
-| Result | Next |
-|--------|------|
-| `RESEARCH_REQUIRED` | Repair Research → re-review (no BA) |
-| `REVISION_REQUIRED` | Draft Writing → re-review (no BA) |
-| `RECONCILE_REQUIRED` | Evidence Reconcile → re-review (no BA) |
-| `PASS` / `PASS_WITH_DISCUSSION` | BA Draft Review |
-| `BLOCKED` (no remaining hypothesis) | BA Draft Review with blocker package |
+完成：本轮两份 `REVIEW_WRITTEN` 存在（以及可选第三份）。按并集合并；按 `(section, problem fingerprint)` 去重。主代理复核引用文件后仍成立的 Critical 不能清洁交卷。
 
-Cap `content_review_round` at 3. Keep looping while Critical agent-owned issues have a search/repair hypothesis. At cap with no hypothesis: `BLOCKED`, never paper over with `PASS_WITH_DISCUSSION`. `PASS_WITH_DISCUSSION` is only for user-owned backlog or non-critical discussion.
+| 合并结果 | 下一步（仍在循环 A，不见 BA） |
+|----------|--------------------------------|
+| `RESEARCH_REQUIRED` | 针对点名的缺失标识补研究 → 再派审查 |
+| `REVISION_REQUIRED` | 用已有 briefs/registry 改稿 → 再派审查 |
+| `RECONCILE_REQUIRED` | 修 registry → 再派审查 |
+| `PASS` / `PASS_WITH_DISCUSSION` | 循环 B（Handoff） |
+| `BLOCKED`（没有剩余假设） | 循环 B，带 blocker 包 |
 
-Full content review after IR/scope/source/evidence/API/schema/auth/data/event/rollback changes. Local review after wording-only edits. Always full review before a final candidate.
+`content_review_round` 上限 3。第一轮已含两个角色。只要 Critical 且代理可搜/可修就继续。到顶没有新假设：`BLOCKED`。`PASS_WITH_DISCUSSION` 只用于用户该拍板的积压或非关键讨论。
 
-## BA interaction
+结构失败 → `REVISION_REQUIRED`（用已有证据填）。证据失败且点出缺失标识 → `RESEARCH_REQUIRED`。两角色都过、只剩 BA 该拍板的 → `PASS_WITH_DISCUSSION`。
 
-Three gates. Not a nested skill.
+IR/范围/源/证据/API/schema/鉴权/数据/事件/回滚变化后：两角色全审。仅措辞：只派结构。终稿候选前必须两角色。
 
-### Gate A — Scope lock
+## 与 BA 互动
 
-See `references/wiki.md`. Only when a wrong answer would send research to the wrong tree.
+三道门。不是嵌套 skill。
 
-### Gate B — Blocked-now
+### Gate A — 确认源码仓
 
-During research/writing, interrupt only for a user-owned product fork: two viable designs with different product impact, missing acceptance, or risk acceptance of a critical GAP. Never “what is the API path?”
+见 `references/wiki.md`。Intake 未点名仓，或 wiki 名单与 intake 不一致时确认 `sources/<id>` 列表。
 
-### Gate C — Draft review
+### Gate B — 现在卡住
 
-Enter only after Content Review result is in `{PASS, PASS_WITH_DISCUSSION, BLOCKED}`.
+调研/写作中，仅用户该拍板的产品分叉才打断：两种设计产品影响不同、缺验收、接受关键 GAP。API 路径与标识在语料里查。
 
-Present in one handoff, then **stop the turn**:
+### Gate C — Handoff（循环 B）
 
-- draft path and gate result
-- selected sources and recommended direction
-- key evidence and `REUSE/MODIFY/EXTEND/ADD` decisions
-- GAPs/CONFLICTs and whether they block Final
-- critical backlog as a **menu** (load-bearing, user-decidable only) — do not ask the first item yet
+仅当内容审查结果 ∈ `{PASS, PASS_WITH_DISCUSSION, BLOCKED}` 时进入。
 
-BA leads. Free-form comments outrank the agent backlog. The BA may reject the framing, change scope, pick a backlog item, request research, edit wording, or confirm a candidate.
+一次交卷，然后 **停轮**：
 
-When the BA engages a fork, ask **one question per turn** with the recommended option first, known FACT/GAP/CONFLICT, and impact per option. Look up facts in wiki/sources/briefs/registry/draft instead of asking.
+- 草稿路径与门结果
+- 已确认源与建议方向
+- 关键证据与 `REUSE/MODIFY/EXTEND/ADD`
+- GAP/CONFLICT 及是否挡住终稿
+- 关键积压做成 **菜单**（仅承载、仅用户可决）——先不问第一项
 
-### Ask / never ask
+完成：本轮不再提问。BA 主导。自由评论高于代理积压。BA 可以推翻框架、改范围、点菜单、要求调研、改措辞、或确认候选。
 
-Ask: IR meaning, in/out of scope, which products/systems, choice among already researched designs, risk acceptance, taste that reverses a visible call.
+BA 咬住分叉时，**一轮一问**，推荐项在前，已知 FACT/GAP/CONFLICT，各选项影响。事实在 wiki/sources/briefs/registry/draft 里查。
 
-Never ask: paths, field names, class names, thresholds, config keys, permission codes, “does this wiki page look right?”, anything findable in the corpus.
+### 问什么
 
-### Classify BA comments and iterate
+问：IR 含义、范围内外、哪些产品/系统（Gate A）、已调研设计中的选择、风险接受、会翻转可见决策的口味。
 
-| Class | Route |
-|-------|--------|
-| interpretation | Requirement Intake → may rebuild wiki-plan |
-| scope / wrong project | Wiki Consumption → research only new/omitted sources; **reuse existing briefs** |
-| missing-fact | Repair Research (one unit per cluster) |
-| design fork | Decision Map → rewrite affected sections |
-| wording | Draft Writing local |
+去查而不是问：路径、字段名、类名、阈值、配置键、权限码、wiki 页对不对、语料里找得到的一切。
 
-Write every resolution to the Decision Map (`Q-*` or `FREEFORM`, status, user choice, recommended option, rationale, evidence IDs, affected sections, needs new research, return node). Mark those sections `DIRTY`.
+### 分类 BA 意见（循环 B）
 
-Re-run `ba2md check` plus the appropriate content-review level. Re-enter Draft Review with a **delta** (change summary, resolved items, remaining backlog), not a full re-walk.
+| 类型 | 回到 |
+|------|------|
+| 需求理解 | Intake，可能重做 wiki-plan |
+| 范围 / 错项目 | Wiki + Gate A；只补新的/漏的已确认源；**复用已有 brief** |
+| 缺事实 | Repair Research（一类缺口一个 unit） |
+| 设计分叉 | Decision Map → 只重写受影响小节 |
+| 措辞 | 局部改稿 |
 
-Unasked backlog items stay listed. They do not unlock Final and do not authorize interrogation.
+每条写入 Decision Map（`Q-*` 或 `FREEFORM`，状态、用户选择、推荐项、理由、证据 ID、受影响节、是否要新调研、返回节点）。这些节标 `DIRTY`。
 
-## Final
+再跑 `ba2md check` 并 **派** 对应审查（全量两角色，或措辞后只派结构）。用 **delta**（改了什么、已解决、还剩什么）再进 Handoff。
 
-Create `{slug}.md` and set `status: final` only when all hold:
+未点的积压项保持列出。它们不解锁终稿，也不授权盘问。
 
-- the BA has seen the latest gated candidate and its change summary
-- every BA-engaged critical decision is confirmed, deferred as non-final, or superseded
-- every `DIRTY` section is rewritten
-- check and Content Review pass (or transparent `BLOCKED` the BA accepted as non-final — then do not finalize)
-- the BA explicitly confirms (`定稿` / `LGTM` / `确认终稿` / `finalize`)
+## 终稿
 
-Silence, “看起来还行”, or an empty backlog is not confirmation.
+仅当下列全部成立时创建 `{slug}.md` 并设 `status: final`：
+
+- BA 见过最新过门候选及其变更摘要
+- 每个 BA 已咬住的关键决策已确认、作为非终稿推迟、或被替代
+- 每个 `DIRTY` 节已重写
+- check 通过且派出去的内容审查为 `PASS` / `PASS_WITH_DISCUSSION`（或 BA 把透明 `BLOCKED` 接受为非终稿——则不定稿）
+- BA 明确确认（`定稿` / `LGTM` / `确认终稿` / `finalize`）
+
+沉默、「看起来还行」、或空积压都不是确认。
