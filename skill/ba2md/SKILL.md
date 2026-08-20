@@ -1,6 +1,6 @@
 ---
 name: ba2md
-description: "根据 Markdown 需求生成有源码依据的软件详细设计。先消费已挂载 wiki，把需求接到项目上；源码定位不确定时才问用户；子代理按已确认源写 briefs；按 templates 写 draft（证据写在稿里）；派结构/证据审查；过则交给用户。用于 $ba2md、BA 转 SDD、既有系统详细设计、wiki+源码调研。不要用来撰写或改写 BA/需求文档。"
+description: "根据 Markdown 需求生成有源码依据的软件详细设计。先消费已挂载 wiki，把需求接到项目上；源码定位不确定时才问用户；子代理按已确认源写 briefs；按 templates 写 draft（证据写在稿里）；派结构/证据审查；过则交给用户。用于 /ba2md、BA 转 SDD、既有系统详细设计、wiki+源码调研。不要用来撰写或改写 BA/需求文档。"
 ---
 
 # 生成有源码依据的详细设计
