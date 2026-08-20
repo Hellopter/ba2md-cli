@@ -106,7 +106,7 @@ analyze IR → consume wiki (bridge IR to the project) → lock sources
 - Resume across sessions from `product/<slug>/progress.yaml` (node, waiting_for, draft/review hashes). Copy `assets/progress-template.yaml`. Subagents do not write this file.
 - `ba2md discover --json` lists mounted `sources/<id>` and `wiki/<id>`, plus each wiki's `tree` (organizational structure). It does not classify page types. Logical-project `marker` files are not a reading order.
 - Wiki is the first bridge from the IR to the project. Reading rules live only in the Skill (`references/wiki.md`): read overview / architecture / source pages, skip `index.md`, then grep keywords and follow links. The Skill does not write `wiki-plan.json`, `wiki-position.md`, or `evidence-registry.md`.
-- The Skill asks the user only when source location is uncertain. A single matching owner is copied into confirmed sources without a confirmation ritual.
+- The Skill asks the user only when source location is still uncertain after reading the relevant wikis. A matching owner plus wiki-judged collaborators are copied into confirmed sources without a confirmation ritual. Pending neighbours are judged from their wiki first; related ones are researched.
 - Research units land in `product/<slug>/briefs/`. One subagent per confirmed source root, not one per template section.
 - Evidence (anchors, decisions, gaps) lives in `<slug>.draft.md`. Review subagents judge that draft (structure and evidence). Fail → rewrite (research again if facts are missing). Pass → deliver and wait.
 - Review is durable only when `progress.yaml` has `last_result: DELIVER` and `review.draft_sha256` matches the current draft. Chat `REVIEW_WRITTEN` is session-local.

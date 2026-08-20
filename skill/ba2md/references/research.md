@@ -38,7 +38,7 @@
 
 **每个已确认源 root 一份 brief。** 仅当第二关注点需要不同搜索根时才再拆。不按模板小节各开一个 unit。
 
-**maybe**（Wiki 候选）：记下假设。仅当用户升格或出现具体 path/symbol 时才开 unit。
+已确认源 = owner + wiki 判为相关的 collaborator，各开一份 brief。`excluded` 不开。节点 3 仍标 maybe 的不当成本次调研——那是待定，应先回到 wiki 判断或问用户，不要既不读 wiki 也不调研。
 
 会改变承载标识（API / 表 / 事件 / 鉴权 / 缝）**且**有具体搜索假设 → 开 unit 或折进本批。
 

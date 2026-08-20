@@ -81,8 +81,8 @@ Intake 不加载 `templates/`。内部包整包替换 `templates/` 后，仍只�
 
 ```text
 1. 分析需求
-2. 消费 wiki          # 建桥：discover 树 → 按 wiki.md 走完
-3. 锁定源              # 定位确定则直接抄进已确认源；不确定才问
+2. 消费 wiki          # 建桥：每个可能相关的 wiki 按 wiki.md 走完
+3. 锁定源              # owner + 相关进已确认源并调研；待定才问
 4. 调研                # 在落点上用源码加深；每个已确认源一个子代理 → briefs/*.md
 5. 写 Draft            # 读模板；缺事实可再派调研；证据写进稿
 6. 审查                # 按维度派子代理，对象 = 这份 draft
@@ -111,17 +111,17 @@ Intake 不加载 `templates/`。内部包整包替换 `templates/` 后，仍只�
 1. 跑 `ba2md discover --json`（回退：`workspace.yaml` + 一层 listing），拿到每个 wiki 的 `tree`。
 2. 读 `references/wiki.md`，按它走完。
 
-完成：`research-plan.md` 写清 **项目是什么** 和 **这条需求落在哪 / 不落在哪**（依据实际打开过的路径）。`progress.yaml` `node: confirm`。尚未打开 `sources/` 做调研。候选仓是副产品，空候选不挡完成。
+完成：`research-plan.md` 写清 **项目是什么**、**这条需求落在哪 / 不落在哪**，并且每个可能相关的源有判断（owner / 相关 / 无关 / 待定）。`progress.yaml` `node: confirm`。尚未打开 `sources/` 做调研。只锁定一个 owner、maybe 未读 wiki，不算完成。
 
 ### 3. 锁定源
 
-把节点 2 的候选抄进 **已确认源**。默认不问。
+把节点 2 的 **owner + 相关** 抄进 **已确认源**（`progress.yaml` 角色：owner / collaborator）。无关标 `excluded`。默认不问。
 
-**确定（直接前进）：** 工作区只有一个 `sources/<id>`；或 wiki 给出唯一 owner 且对得上恰好一个已挂载源；或 intake 点名的集合与 owner（及路径上的 collaborator）一致。collaborator 一并进入。`maybe` 记下、不开调研、也不问。
+**确定（直接前进）：** owner 唯一且对得上已挂载源；相关源已用 wiki 判过。collaborator 一并调研。工作区只有一个 `sources/<id>` 时，它就是已确认源。
 
-**不确定（一问，只问歧义点，`waiting_for: user`）：** 0 个可对上的已挂载源；两个以上都像 owner；wiki 与 intake 点名冲突；需求指向的系统未挂载；wiki 无覆盖且挂了多个源。
+**不确定（一问，只问待定点，`waiting_for: user`）：** 读过对应 wiki 仍待定；0 个可对上的已挂载源；两个以上都像 owner；wiki 与 intake 点名冲突；需求指向的系统未挂载且无 wiki。
 
-完成：`research-plan.md` 的 **已确认源** 表非空，且已抄进 `progress.yaml` `confirmed_sources`，`node: research`。没有该表不得开源码调研。定位已确定时 `waiting_for` 保持 `none`。
+完成：`research-plan.md` 的 **已确认源** 表非空（owner，以及 wiki 判为相关的仓），且已抄进 `progress.yaml` `confirmed_sources`，`node: research`。没有该表不得开源码调研。定位已确定时 `waiting_for` 保持 `none`。待定不要默默跳过。
 
 ### 4. 调研
 
@@ -164,7 +164,7 @@ Intake 不加载 `templates/`。内部包整包替换 `templates/` 后，仍只�
 - `requirements/`、`templates/`、`wiki/`、`sources/` 只读。
 - 散文跟工作区语言；标识符保持原文。
 - 从 `ba2md discover --json` 开始；只在具体的 `sources/<id>` 与 `wiki/<id>/…` 下搜索。
-- Wiki 是桥梁（SUMMARY）：按 `tree` 读主干，再 grep 顺藤摸瓜。精确当前标识只来自稿内带原文锚点的 FACT。
+- Wiki 是桥梁（SUMMARY）：每个可能相关的 `wiki/<id>/` 都走主干 + grep。相关的源进调研。精确当前标识只来自稿内带原文锚点的 FACT。
 - 有 **已确认源** 才开源码调研。
 - 无依据记 GAP；不编造，不让用户猜事实。
 - 优先既有缝；每个 `ADD` 需要旧缝不足的证据。
