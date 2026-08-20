@@ -3,12 +3,6 @@ import path from 'node:path';
 import { isDirectory, pathExists } from '../utils/fs.js';
 
 const DONE_STATUS_RE = /^(done|accepted|complete|ready.?for.?acceptance|closed)$/i;
-const PROCESS_MARKDOWN = new Set([
-  'research-plan.md',
-  'evidence-registry.md',
-  'wiki-position.md',
-  'gate-report.md',
-]);
 
 export interface CheckReport {
   ok: boolean;
@@ -36,7 +30,6 @@ export async function checkProduct(
 
   const planText = await readOptional(path.join(absoluteProduct, 'research-plan.md'));
   await checkBriefs(absoluteProduct, planText, errors);
-  await checkContentReview(absoluteProduct, errors);
 
   return {
     ok: errors.length === 0,
@@ -74,34 +67,11 @@ async function checkBriefs(
   }
 }
 
-async function checkContentReview(productDir: string, errors: string[]): Promise<void> {
-  const entries = await fsp.readdir(productDir);
-  const hasDraft = entries.some((name) => name.endsWith('.draft.md'));
-  const hasFinal = entries.some(
-    (name) =>
-      name.endsWith('.md') &&
-      !name.endsWith('.draft.md') &&
-      !PROCESS_MARKDOWN.has(name),
-  );
-  if (!hasDraft && !hasFinal) return;
-
-  const reviewDir = path.join(productDir, 'reviews');
-  const reviews =
-    (await pathExists(reviewDir)) && (await isDirectory(reviewDir))
-      ? (await fsp.readdir(reviewDir)).filter((name) =>
-          /^content-review-.*\.md$/i.test(name),
-        )
-      : [];
-  if (reviews.length === 0) {
-    errors.push('draft or final document exists but reviews/ has no content-review-*.md');
-  }
-}
-
 function hasAcceptedResearch(planText: string): boolean {
   const accepted = planText.match(/Accepted research units:\s*(\d+)/i);
   if (accepted && Number(accepted[1]) > 0) return true;
 
-  const unitsSection = planText.split(/## Research Units/i)[1];
+  const unitsSection = planText.split(/## (?:Research Units|研究单元)/i)[1];
   if (!unitsSection) return false;
   const nextHeading = unitsSection.search(/\n## /);
   const body = nextHeading >= 0 ? unitsSection.slice(0, nextHeading) : unitsSection;

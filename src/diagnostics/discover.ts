@@ -34,6 +34,9 @@ const SOURCE_IDENTITY_FILES = new Set([
   'makefile',
 ]);
 
+const SKIP_DIR_NAMES = new Set(['node_modules', '.git']);
+export const MAX_WIKI_OUTLINE_PAGES = 500;
+
 export type EntryShape = 'single' | 'nested-projects' | 'empty' | 'missing' | 'mixed';
 
 export interface LogicalProject {
@@ -52,6 +55,17 @@ export interface ManagedSourceInventory {
   notes: string[];
 }
 
+export interface WikiOutlinePage {
+  path: string;
+  depth: number;
+}
+
+export interface WikiOutline {
+  dirs: string[];
+  pages: WikiOutlinePage[];
+  truncated: boolean;
+}
+
 export interface ManagedWikiInventory {
   id: string;
   type: 'local' | 'git';
@@ -59,6 +73,7 @@ export interface ManagedWikiInventory {
   ok: boolean;
   shape: EntryShape;
   logicalProjects: LogicalProject[];
+  outline: WikiOutline;
   notes: string[];
 }
 
@@ -146,6 +161,65 @@ async function collectIdentityFiles(dir: string, relativeRoot: string): Promise<
   return files
     .filter((name) => isSourceIdentityFile(name))
     .map((name) => toPosix(path.join(relativeRoot, name)));
+}
+
+function emptyOutline(): WikiOutline {
+  return { dirs: [], pages: [], truncated: false };
+}
+
+function pageDepth(relativeWiki: string, pagePath: string): number {
+  const prefix = `${toPosix(relativeWiki)}/`;
+  const rest = toPosix(pagePath).startsWith(prefix)
+    ? toPosix(pagePath).slice(prefix.length)
+    : toPosix(pagePath);
+  if (!rest) return 0;
+  return rest.split('/').length;
+}
+
+async function collectWikiOutline(
+  absoluteWiki: string,
+  relativeWiki: string,
+): Promise<WikiOutline> {
+  const dirs: string[] = [toPosix(relativeWiki)];
+  const pages: WikiOutlinePage[] = [];
+  let truncated = false;
+
+  async function walk(abs: string, rel: string): Promise<void> {
+    if (truncated) return;
+    let entries;
+    try {
+      entries = await fsp.readdir(abs, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    entries.sort((a, b) => a.name.localeCompare(b.name));
+    for (const entry of entries) {
+      if (truncated) return;
+      if (entry.name.startsWith('.')) continue;
+      if (SKIP_DIR_NAMES.has(entry.name.toLowerCase())) continue;
+      const childAbs = path.join(abs, entry.name);
+      const childRel = toPosix(path.join(rel, entry.name));
+      const isDir =
+        entry.isDirectory() || (entry.isSymbolicLink() && (await isDirectory(childAbs)));
+      if (isDir) {
+        dirs.push(childRel);
+        await walk(childAbs, childRel);
+        continue;
+      }
+      const lower = entry.name.toLowerCase();
+      if (!lower.endsWith('.md') && !lower.endsWith('.mdx')) continue;
+      if (pages.length >= MAX_WIKI_OUTLINE_PAGES) {
+        truncated = true;
+        return;
+      }
+      pages.push({ path: childRel, depth: pageDepth(relativeWiki, childRel) });
+    }
+  }
+
+  await walk(absoluteWiki, relativeWiki);
+  dirs.sort((a, b) => a.localeCompare(b));
+  pages.sort((a, b) => a.path.localeCompare(b.path));
+  return { dirs, pages, truncated };
 }
 
 async function inspectLogicalProject(
@@ -237,6 +311,7 @@ async function inspectWikiEntry(
       ok: false,
       shape: 'missing',
       logicalProjects: [],
+      outline: emptyOutline(),
       notes: [(error as Error).message],
     };
   }
@@ -249,6 +324,7 @@ async function inspectWikiEntry(
       ok: false,
       shape: 'missing',
       logicalProjects: [],
+      outline: emptyOutline(),
       notes: ['path missing'],
     };
   }
@@ -261,6 +337,7 @@ async function inspectWikiEntry(
       ok: false,
       shape: 'missing',
       logicalProjects: [],
+      outline: emptyOutline(),
       notes: ['path is not a directory'],
     };
   }
@@ -308,6 +385,11 @@ async function inspectWikiEntry(
     logicalProjects = [rootProject];
   }
 
+  const outline = await collectWikiOutline(absolute, relativePath);
+  if (outline.truncated) {
+    notes.push(`wiki outline truncated after ${MAX_WIKI_OUTLINE_PAGES} markdown pages`);
+  }
+
   return {
     id,
     type,
@@ -315,6 +397,7 @@ async function inspectWikiEntry(
     ok: true,
     shape,
     logicalProjects,
+    outline,
     notes,
   };
 }
@@ -347,7 +430,8 @@ export async function collectDiscover(
   const guidance = [
     'Use this inventory before any workspace-wide content search.',
     'Source and wiki roots must be concrete paths such as sources/<id> or wiki/<id>[/<project>], never bare sources/ or wiki/.',
-    'Selection is progressive: start from wiki-position sources. Do not pre-exclude every managed source.',
+    'Read wiki from the outline (dirs + pages), coarse to fine: overview/architecture first, then named local pages. Do not require source.md.',
+    'Selection is progressive from wiki candidates plus user confirmation. Do not pre-exclude every managed source.',
     'Do not enumerate projects with grep/Glob on sources/** or wiki/*.',
   ];
 
@@ -413,6 +497,10 @@ export function formatDiscover(report: DiscoverReport): string {
             : '(no entry pages)';
         lines.push(`      logical: ${project.path} entry=[${pages}]`);
       }
+      const outlineNote = item.outline.truncated
+        ? `${item.outline.pages.length}+ pages (truncated), ${item.outline.dirs.length} dirs`
+        : `${item.outline.pages.length} pages, ${item.outline.dirs.length} dirs`;
+      lines.push(`      outline: ${outlineNote}`);
       for (const note of item.notes) {
         lines.push(`      note: ${note}`);
       }

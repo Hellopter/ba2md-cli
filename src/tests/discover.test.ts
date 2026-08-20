@@ -63,6 +63,31 @@ describe('discover inventory', () => {
     assert.ok(wiki.logicalProjects.every((p) => p.entryPages.length > 0));
     assert.match(formatDiscover(report), /nested-projects/);
     assert.match(formatDiscover(report), /wiki\/docs\/billing/);
+    assert.ok(wiki.outline.pages.some((p) => p.path.endsWith('billing/api.md')));
+    assert.ok(wiki.outline.pages.some((p) => p.path.endsWith('orders/deep/note.md')));
+    assert.equal(wiki.outline.truncated, false);
+  });
+
+  it('lists wiki outline pages even when source.md is absent', async () => {
+    const cwd = await makeTempDir();
+    const { root } = await initWorkspace('ws', cwd);
+    const wikiDir = path.join(cwd, 'plain-wiki');
+    await writeFile(path.join(wikiDir, 'overview.md'), '# overview\n');
+    await writeFile(path.join(wikiDir, 'architecture.md'), '# arch\n');
+    await writeFile(path.join(wikiDir, 'domains', 'billing.md'), '# billing\n');
+    await addWiki(root, wikiDir, { id: 'plain' });
+
+    const config = await readWorkspaceConfig(root);
+    const report = await collectDiscover(root, config);
+    const wiki = report.wiki[0];
+    assert.ok(wiki.outline.pages.some((p) => p.path.endsWith('overview.md')));
+    assert.ok(wiki.outline.pages.some((p) => p.path.endsWith('domains/billing.md')));
+    assert.equal(
+      wiki.outline.pages.some((p) => p.path.endsWith('source.md')),
+      false,
+    );
+    assert.match(formatDiscover(report), /outline:/);
+    assert.match(formatDiscover(report), /Do not require source\.md/);
   });
 
   it('treats wiki entry root with README as a single logical project', async () => {

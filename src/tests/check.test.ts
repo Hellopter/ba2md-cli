@@ -32,6 +32,26 @@ describe('ba2md check', () => {
     assert.ok(report.errors.some((e) => /briefs\/ is empty/.test(e)));
   });
 
+  it('fails when a 研究单元 row is done and briefs/ is empty', async () => {
+    const cwd = await makeTempDir();
+    const { root } = await initWorkspace('ws', cwd);
+    const dir = await productDir(root);
+    await writeFile(
+      path.join(dir, 'research-plan.md'),
+      `# Research Plan
+
+## 研究单元
+| Unit ID | Trigger | Source ID | Questions | Brief path | Status |
+|---------|---------|-----------|-----------|------------|--------|
+| U-AUTH-001 | req | svc-a | how? | \`briefs/U-AUTH-001.md\` | done |
+`,
+    );
+
+    const report = await checkProduct(root, 'product/demo-sdd');
+    assert.equal(report.ok, false);
+    assert.ok(report.errors.some((e) => /briefs\/ is empty/.test(e)));
+  });
+
   it('fails when a Research Units row is done and briefs/ is empty', async () => {
     const cwd = await makeTempDir();
     const { root } = await initWorkspace('ws', cwd);
@@ -52,12 +72,11 @@ describe('ba2md check', () => {
     assert.ok(report.errors.some((e) => /briefs\/ is empty/.test(e)));
   });
 
-  it('passes when accepted units have a brief and a draft has a content-review file', async () => {
+  it('passes when accepted units have a brief (a draft without reviews no longer fails)', async () => {
     const cwd = await makeTempDir();
     const { root } = await initWorkspace('ws', cwd);
     const dir = await productDir(root);
     await fsp.mkdir(path.join(dir, 'briefs'), { recursive: true });
-    await fsp.mkdir(path.join(dir, 'reviews'), { recursive: true });
     await writeFile(
       path.join(dir, 'research-plan.md'),
       `# Research Plan
@@ -67,22 +86,12 @@ describe('ba2md check', () => {
 `,
     );
     await writeFile(path.join(dir, 'briefs', 'U-AUTH-001.md'), '# brief\n');
-    await writeFile(path.join(dir, 'reviews', 'content-review-1-comprehensive.md'), '# review\n');
+    // A draft with no reviews/ must not fail check: review happens after drafting,
+    // so its absence right after writing is the expected state, not a violation.
     await writeFile(path.join(dir, 'demo-sdd.draft.md'), '# draft\n');
 
     const report = await checkProduct(root, 'product/demo-sdd');
     assert.equal(report.ok, true, formatCheck(report));
-  });
-
-  it('fails when a draft exists without a content-review file', async () => {
-    const cwd = await makeTempDir();
-    const { root } = await initWorkspace('ws', cwd);
-    const dir = await productDir(root);
-    await writeFile(path.join(dir, 'demo-sdd.draft.md'), '# draft\n');
-
-    const report = await checkProduct(root, 'product/demo-sdd');
-    assert.equal(report.ok, false);
-    assert.ok(report.errors.some((e) => /no content-review/.test(e)));
   });
 
   it('does not fail when other managed sources are unmentioned', async () => {
@@ -95,8 +104,6 @@ describe('ba2md check', () => {
     await addSource(root, a, { id: 'svc-a' });
     await addSource(root, b, { id: 'svc-b' });
     const dir = await productDir(root);
-    await fsp.mkdir(path.join(dir, 'reviews'), { recursive: true });
-    await writeFile(path.join(dir, 'reviews', 'content-review-1.md'), '# review\n');
     await writeFile(path.join(dir, 'demo-sdd.draft.md'), '# draft\n');
 
     const report = await checkProduct(root, 'product/demo-sdd');

@@ -72,7 +72,7 @@ No workspace Git repo is initialized. Root `AGENTS.md` / `CLAUDE.md` are not mod
 | `ba2md status --json` | Same summary as machine-readable JSON |
 | `ba2md discover` | Inventory managed sources/wiki and expand logical projects |
 | `ba2md discover --json` | Machine-readable inventory of mounted ids (not wiki page types) |
-| `ba2md check --product <dir>` | Tripwires for non-empty `briefs/` and content-review files |
+| `ba2md check --product <dir>` | Optional: accepted research units require a non-empty `briefs/` |
 | `ba2md doctor` | Health checks; nonzero exit on problems |
 | `ba2md skill install` | Install/refresh Skill into `.agents` and `.claude` |
 | `ba2md skill status` | Show digests / drift |
@@ -97,20 +97,20 @@ Commands invoked below the workspace root walk upward to the nearest `workspace.
 Install Claude Code or OpenCode, open the initialized workspace, and use the **ba2md** Skill (`$ba2md`). Runtime:
 
 ```text
-IR intake → wiki inventory (discover) → wiki-plan + wiki-position
-  → Gate A confirm sources → research briefs (spawn by scale)
-  → draft → spawned structure + evidence review → BA handoff
+analyze IR → consume wiki (discover outline, coarse to fine) → confirm scope
+  → research subagents write briefs/ → write draft (evidence in the draft)
+  → structure + evidence review of the draft → deliver or rewrite → wait
 ```
 
 - The packaged Skill (`skill/ba2md/`) is Chinese. `{SKILL_DIR}/templates/` (`sdd.md` + `sections/`) may be replaced wholesale by an internal pack — **same layout, different markdown bodies**.
-- `ba2md discover --json` lists mounted `sources/<id>` and `wiki/<id>` (and nested docs layouts). It does not parse wiki page types — that layout lives in the Skill (`references/wiki.md`).
-- The Skill reads `overview.md`, every `<source>/source.md`, then requirement-relevant domains/concepts, and writes `product/<slug>/wiki-plan.json` + `wiki-position.md` **before** source research.
-- If intake did not name source repos, Gate A asks the BA to confirm the `sources/<id>` list before briefs.
-- Research units land in `product/<slug>/briefs/`. Spawn is by disjoint source root and scale (`references/research.md`), not one child per template section.
-- Content review is two spawned files under `product/<slug>/reviews/` (`content-review-<round>-structure.md` and `-evidence.md`). The main session does not author those files. `ba2md check --product product/<slug>` enforces tripwires; it does not replace content review.
-- After review passes, the Skill presents a menu and waits. BA comments route to the earliest node; then review is spawned again and a delta is presented. Finalize only on explicit confirmation.
+- `ba2md discover --json` lists mounted `sources/<id>` and `wiki/<id>`, plus each wiki's `outline` (real dirs and markdown paths). It does not classify page types.
+- The Skill reads the outline from general to specific (overview / architecture first, then named local pages). Missing filenames such as `source.md` are skipped. It does not write `wiki-plan.json`, `wiki-position.md`, or `evidence-registry.md`.
+- If intake did not name source repos, the Skill asks the user to confirm the `sources/<id>` list before briefs.
+- Research units land in `product/<slug>/briefs/`. One subagent per confirmed source root, not one per template section.
+- Evidence (anchors, decisions, gaps) lives in `<slug>.draft.md`. Review subagents judge that draft (structure and evidence). Fail → rewrite (research again if facts are missing). Pass → deliver and wait.
+- `ba2md check` is optional and only checks that accepted research left a non-empty `briefs/`. The Skill does not run it as a process gate.
 
-Agents must not enumerate projects with workspace-wide `sources/**` or `wiki/*.md` searches. Wiki is positioning (`SUMMARY`); precise current identifiers need `FACT` anchors under `sources/<id>/`.
+Agents must not enumerate projects with workspace-wide `sources/**` or `wiki/*.md` searches. Wiki is positioning (`SUMMARY`); precise current identifiers need anchors under `sources/<id>/` written in the draft.
 
 ## Development
 
