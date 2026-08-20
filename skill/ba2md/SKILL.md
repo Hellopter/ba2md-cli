@@ -1,6 +1,6 @@
 ---
 name: ba2md
-description: "根据 Markdown 需求生成有源码依据的软件详细设计。先读已挂载 wiki；与用户确认变更范围；子代理调研写 briefs；按 templates 写 draft（证据写在稿里）；派结构/证据审查子代理；过则交给用户。用于 $ba2md、BA 转 SDD、既有系统详细设计、wiki+源码调研。不要用来撰写或改写 BA/需求文档。"
+description: "根据 Markdown 需求生成有源码依据的软件详细设计。先消费已挂载 wiki，把需求接到项目上；源码定位不确定时才问用户；子代理按已确认源写 briefs；按 templates 写 draft（证据写在稿里）；派结构/证据审查；过则交给用户。用于 $ba2md、BA 转 SDD、既有系统详细设计、wiki+源码调研。不要用来撰写或改写 BA/需求文档。"
 ---
 
 # 生成有源码依据的详细设计
@@ -17,11 +17,11 @@ description: "根据 Markdown 需求生成有源码依据的软件详细设计�
 |------|------|------|
 | 需求输入 | `{WORKSPACE}/requirements/*.md` | 只读。显式文件、标题/关键词匹配、或扁平目录队列 |
 | 工作区登记 | `{WORKSPACE}/workspace.yaml` | sources / wiki / requirements；`language:` 控制交付物语言（缺省 `zh`） |
-| 盘点 | `ba2md discover --json` | 已挂载 id + 每个 wiki 的 `outline.tree`（真实目录/页面树）。内容搜索前先跑 |
-| Wiki | `{WORKSPACE}/wiki/<id>/` | 地图（SUMMARY） |
+| 盘点 | `ba2md discover --json` | 已挂载 id + 每个 wiki 的 `tree`（组织结构）。内容搜索前先跑 |
+| Wiki | `{WORKSPACE}/wiki/<id>/` | 桥梁（SUMMARY）：把需求接到项目上 |
 | 源码 | `{WORKSPACE}/sources/<id>/` | FACT 根。仅当没有 `sources/` 时回退 `{WORKSPACE}/souces/` |
 | 进度 | `{WORKSPACE}/product/<slug>/progress.yaml` | **跨会话游标。** 节点、在等谁、draft/审查哈希。形状：`assets/progress-template.yaml` |
-| 工作笔记 | `{WORKSPACE}/product/<slug>/research-plan.md` | 主会话备忘：需求锚点、wiki 候选、已确认源。不是证据正文 |
+| 工作笔记 | `{WORKSPACE}/product/<slug>/research-plan.md` | 主会话备忘：需求锚点、项目理解、需求落点、已确认源。不是证据正文 |
 | Briefs | `{WORKSPACE}/product/<slug>/briefs/<unit-id>.md` | 调研子代理笔记。调研后 `briefs/` 为空即失败 |
 | 草稿 / 终稿 | `{WORKSPACE}/product/<slug>/<slug>.draft.md` 然后 `<slug>.md` | **唯一设计交付物。** 证据、决策、GAP 都写在稿里 |
 | 审查 | `{WORKSPACE}/product/<slug>/reviews/content-review-<round>-<dimension>.md` | 子代理过程文件；审查对象是 draft |
@@ -81,14 +81,14 @@ Intake 不加载 `templates/`。内部包整包替换 `templates/` 后，仍只�
 
 ```text
 1. 分析需求
-2. 消费 wiki          # discover 结构树 → 按 wiki.md 走完
-3. 确认范围            # 问用户：这次改哪些仓
-4. 调研                # 每个已确认源一个子代理 → briefs/*.md
+2. 消费 wiki          # 建桥：discover 树 → 按 wiki.md 走完
+3. 锁定源              # 定位确定则直接抄进已确认源；不确定才问
+4. 调研                # 在落点上用源码加深；每个已确认源一个子代理 → briefs/*.md
 5. 写 Draft            # 读模板；缺事实可再派调研；证据写进稿
 6. 审查                # 按维度派子代理，对象 = 这份 draft
       ├─ WRITE   → 回 5（缺事实必须先调研）
       └─ DELIVER → 交给用户，停轮
-7. 等反馈              # 按意见回到确认 / 调研 / 写，再审再交
+7. 等反馈              # 按意见回到锁定源 / 调研 / 写，再审再交
 8. 终稿                # 仅明确「定稿」
 ```
 
@@ -102,22 +102,26 @@ Intake 不加载 `templates/`。内部包整包替换 `templates/` 后，仍只�
 
 路径、SHA-256、选择理由写入 `research-plan.md`。目标、角色、行为、约束、验收、非目标只从需求正文推导。队列中各单元独立。
 
-记下用户是否 **点名了源码仓**（`sources/<id>` 或仓库名）。该标记驱动确认范围。
+记下用户是否 **点名了源码仓**（`sources/<id>` 或仓库名）。该标记参与锁定源。
 
 完成：选中需求有路径与哈希，且已写「是否点名源码仓」。`progress.yaml` 的 `intake` 已填，`node: wiki`。
 
 ### 2. 消费 wiki
 
-1. 跑 `ba2md discover --json`（回退：`workspace.yaml` + 一层 listing），拿到每个 wiki 的 `outline.tree`。
+1. 跑 `ba2md discover --json`（回退：`workspace.yaml` + 一层 listing），拿到每个 wiki 的 `tree`。
 2. 读 `references/wiki.md`，按它走完。
 
-完成：`research-plan.md` 列出**实际打开过的路径**，且每个候选 `sources/<id>` 有一行依据（读过的 wiki 页，或「wiki 未覆盖 + 需求仍指向」）。`progress.yaml` `node: confirm`。尚未打开 `sources/` 做调研。空表不算完成。
+完成：`research-plan.md` 写清 **项目是什么** 和 **这条需求落在哪 / 不落在哪**（依据实际打开过的路径）。`progress.yaml` `node: confirm`。尚未打开 `sources/` 做调研。候选仓是副产品，空候选不挡完成。
 
-### 3. 确认范围
+### 3. 锁定源
 
-出示候选仓表，一问确认 / 增 / 删。Intake 未点名仓，或 wiki 候选与点名不一致时 **必须问**。已点名且与 owner + collaborator 一致则抄进已确认源，继续。
+把节点 2 的候选抄进 **已确认源**。默认不问。
 
-完成：`research-plan.md` 的 **已确认源** 表非空，且已抄进 `progress.yaml` `confirmed_sources`，`node: research`。没有该表不得开源码调研。问用户时 `waiting_for: user`。
+**确定（直接前进）：** 工作区只有一个 `sources/<id>`；或 wiki 给出唯一 owner 且对得上恰好一个已挂载源；或 intake 点名的集合与 owner（及路径上的 collaborator）一致。collaborator 一并进入。`maybe` 记下、不开调研、也不问。
+
+**不确定（一问，只问歧义点，`waiting_for: user`）：** 0 个可对上的已挂载源；两个以上都像 owner；wiki 与 intake 点名冲突；需求指向的系统未挂载；wiki 无覆盖且挂了多个源。
+
+完成：`research-plan.md` 的 **已确认源** 表非空，且已抄进 `progress.yaml` `confirmed_sources`，`node: research`。没有该表不得开源码调研。定位已确定时 `waiting_for` 保持 `none`。
 
 ### 4. 调研
 
@@ -160,7 +164,7 @@ Intake 不加载 `templates/`。内部包整包替换 `templates/` 后，仍只�
 - `requirements/`、`templates/`、`wiki/`、`sources/` 只读。
 - 散文跟工作区语言；标识符保持原文。
 - 从 `ba2md discover --json` 开始；只在具体的 `sources/<id>` 与 `wiki/<id>/…` 下搜索。
-- Wiki 是地图（SUMMARY）：按 `outline.tree` 从浅到深走。精确当前标识只来自稿内带原文锚点的 FACT。
+- Wiki 是桥梁（SUMMARY）：按 `tree` 读主干，再 grep 顺藤摸瓜。精确当前标识只来自稿内带原文锚点的 FACT。
 - 有 **已确认源** 才开源码调研。
 - 无依据记 GAP；不编造，不让用户猜事实。
 - 优先既有缝；每个 `ADD` 需要旧缝不足的证据。

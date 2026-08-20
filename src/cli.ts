@@ -177,7 +177,7 @@ async function main(): Promise<void> {
 
   program
     .command('discover')
-    .description('Inventory managed sources/wiki and expand logical projects')
+    .description('Inventory managed sources/wiki and each wiki structure tree')
     .option('--json', 'emit machine-readable JSON')
     .action(async (options: { json?: boolean }) => {
       const { root, config } = await requireWorkspace();
