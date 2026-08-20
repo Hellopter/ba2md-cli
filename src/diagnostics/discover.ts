@@ -60,9 +60,17 @@ export interface WikiOutlinePage {
   depth: number;
 }
 
+export interface WikiOutlineNode {
+  type: 'dir' | 'page';
+  path: string;
+  name: string;
+  children?: WikiOutlineNode[];
+}
+
 export interface WikiOutline {
   dirs: string[];
   pages: WikiOutlinePage[];
+  tree: WikiOutlineNode;
   truncated: boolean;
 }
 
@@ -164,7 +172,90 @@ async function collectIdentityFiles(dir: string, relativeRoot: string): Promise<
 }
 
 function emptyOutline(): WikiOutline {
-  return { dirs: [], pages: [], truncated: false };
+  return {
+    dirs: [],
+    pages: [],
+    tree: { type: 'dir', path: '', name: '', children: [] },
+    truncated: false,
+  };
+}
+
+function nodeName(posixPath: string): string {
+  const parts = posixPath.split('/').filter(Boolean);
+  return parts[parts.length - 1] ?? posixPath;
+}
+
+function parentPath(posixPath: string): string {
+  const i = posixPath.lastIndexOf('/');
+  return i <= 0 ? '' : posixPath.slice(0, i);
+}
+
+export function buildWikiTree(
+  relativeWiki: string,
+  dirs: string[],
+  pages: WikiOutlinePage[],
+): WikiOutlineNode {
+  const rootPath = toPosix(relativeWiki);
+  const root: WikiOutlineNode = {
+    type: 'dir',
+    path: rootPath,
+    name: nodeName(rootPath),
+    children: [],
+  };
+  const dirNodes = new Map<string, WikiOutlineNode>([[rootPath, root]]);
+  const sortedDirs = [...dirs].sort((a, b) => {
+    const depth = a.split('/').length - b.split('/').length;
+    return depth !== 0 ? depth : a.localeCompare(b);
+  });
+  for (const dir of sortedDirs) {
+    if (dir === rootPath) continue;
+    const node: WikiOutlineNode = {
+      type: 'dir',
+      path: dir,
+      name: nodeName(dir),
+      children: [],
+    };
+    dirNodes.set(dir, node);
+    const parent = dirNodes.get(parentPath(dir)) ?? root;
+    parent.children?.push(node);
+  }
+  for (const page of pages) {
+    const node: WikiOutlineNode = {
+      type: 'page',
+      path: page.path,
+      name: nodeName(page.path),
+    };
+    const parent = dirNodes.get(parentPath(page.path)) ?? root;
+    parent.children?.push(node);
+  }
+  sortTree(root);
+  return root;
+}
+
+function sortTree(node: WikiOutlineNode): void {
+  if (!node.children) return;
+  node.children.sort((a, b) => {
+    if (a.type !== b.type) return a.type === 'dir' ? -1 : 1;
+    return a.name.localeCompare(b.name);
+  });
+  for (const child of node.children) sortTree(child);
+}
+
+export function formatWikiTree(tree: WikiOutlineNode, truncated: boolean): string[] {
+  const lines: string[] = [];
+  function walk(node: WikiOutlineNode, indent: string, isRoot: boolean): void {
+    if (node.type === 'dir') {
+      const label = isRoot ? `${node.path}/` : `${node.name}/`;
+      lines.push(`${indent}${label}`);
+      const next = `${indent}  `;
+      for (const child of node.children ?? []) walk(child, next, false);
+      return;
+    }
+    lines.push(`${indent}${node.name}`);
+  }
+  walk(tree, '', true);
+  if (truncated) lines.push('… truncated');
+  return lines;
 }
 
 function pageDepth(relativeWiki: string, pagePath: string): number {
@@ -219,7 +310,12 @@ async function collectWikiOutline(
   await walk(absoluteWiki, relativeWiki);
   dirs.sort((a, b) => a.localeCompare(b));
   pages.sort((a, b) => a.path.localeCompare(b.path));
-  return { dirs, pages, truncated };
+  return {
+    dirs,
+    pages,
+    tree: buildWikiTree(relativeWiki, dirs, pages),
+    truncated,
+  };
 }
 
 async function inspectLogicalProject(
@@ -430,7 +526,7 @@ export async function collectDiscover(
   const guidance = [
     'Use this inventory before any workspace-wide content search.',
     'Source and wiki roots must be concrete paths such as sources/<id> or wiki/<id>[/<project>], never bare sources/ or wiki/.',
-    'Read wiki from the outline (dirs + pages), coarse to fine: overview/architecture first, then named local pages. Do not require source.md.',
+    'Walk each wiki outline.tree by depth (shallow pages first). Do not use logical-project markers as reading order.',
     'Selection is progressive from wiki candidates plus user confirmation. Do not pre-exclude every managed source.',
     'Do not enumerate projects with grep/Glob on sources/** or wiki/*.',
   ];
@@ -495,12 +591,18 @@ export function formatDiscover(report: DiscoverReport): string {
           project.entryPages.length > 0
             ? project.entryPages.map((p) => path.posix.basename(p)).join(', ')
             : '(no entry pages)';
-        lines.push(`      logical: ${project.path} entry=[${pages}]`);
+        lines.push(`      logical: ${project.path} marker=[${pages}]`);
       }
       const outlineNote = item.outline.truncated
         ? `${item.outline.pages.length}+ pages (truncated), ${item.outline.dirs.length} dirs`
         : `${item.outline.pages.length} pages, ${item.outline.dirs.length} dirs`;
       lines.push(`      outline: ${outlineNote}`);
+      if (item.outline.tree.path) {
+        lines.push('      tree:');
+        for (const treeLine of formatWikiTree(item.outline.tree, item.outline.truncated)) {
+          lines.push(`        ${treeLine}`);
+        }
+      }
       for (const note of item.notes) {
         lines.push(`      note: ${note}`);
       }

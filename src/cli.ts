@@ -191,7 +191,7 @@ async function main(): Promise<void> {
 
   program
     .command('check')
-    .description('Optional tripwire: accepted research units require a non-empty briefs/ directory')
+    .description('Optional tripwires: progress.yaml cursor vs product directory')
     .requiredOption('--product <dir>', 'product directory, e.g. product/foo-sdd')
     .action(async (options: { product: string }) => {
       const { root } = await requireWorkspace();

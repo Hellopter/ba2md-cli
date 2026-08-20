@@ -17,9 +17,10 @@ description: "根据 Markdown 需求生成有源码依据的软件详细设计�
 |------|------|------|
 | 需求输入 | `{WORKSPACE}/requirements/*.md` | 只读。显式文件、标题/关键词匹配、或扁平目录队列 |
 | 工作区登记 | `{WORKSPACE}/workspace.yaml` | sources / wiki / requirements；`language:` 控制交付物语言（缺省 `zh`） |
-| 盘点 | `ba2md discover --json` | 已挂载 id + 每个 wiki 的真实目录/页面树（`outline`）。内容搜索前先跑 |
-| Wiki | `{WORKSPACE}/wiki/<id>/` | 定位摘要。仅 SUMMARY |
+| 盘点 | `ba2md discover --json` | 已挂载 id + 每个 wiki 的 `outline.tree`（真实目录/页面树）。内容搜索前先跑 |
+| Wiki | `{WORKSPACE}/wiki/<id>/` | 地图（SUMMARY） |
 | 源码 | `{WORKSPACE}/sources/<id>/` | FACT 根。仅当没有 `sources/` 时回退 `{WORKSPACE}/souces/` |
+| 进度 | `{WORKSPACE}/product/<slug>/progress.yaml` | **跨会话游标。** 节点、在等谁、draft/审查哈希。形状：`assets/progress-template.yaml` |
 | 工作笔记 | `{WORKSPACE}/product/<slug>/research-plan.md` | 主会话备忘：需求锚点、wiki 候选、已确认源。不是证据正文 |
 | Briefs | `{WORKSPACE}/product/<slug>/briefs/<unit-id>.md` | 调研子代理笔记。调研后 `briefs/` 为空即失败 |
 | 草稿 / 终稿 | `{WORKSPACE}/product/<slug>/<slug>.draft.md` 然后 `<slug>.md` | **唯一设计交付物。** 证据、决策、GAP 都写在稿里 |
@@ -27,15 +28,36 @@ description: "根据 Markdown 需求生成有源码依据的软件详细设计�
 | 模板 | `{SKILL_DIR}/templates/` | 只读。可替换包，布局固定：`sdd.md` + 它点名的 `sections/` |
 | 形状 | `{SKILL_DIR}/assets/` | 拷贝后填写 |
 
-不得修改 `templates/`、`requirements/`、`wiki/`、`sources/`、`souces/`。草稿、plan、briefs、reviews 只写 `product/<slug>/`。尊重用户给出的显式路径。默认 slug：文件输入用 `<file-stem>-sdd`，会话输入用 `YYYY-MM-DD-<short-name>-sdd`。冲突则询问。
+不得修改 `templates/`、`requirements/`、`wiki/`、`sources/`、`souces/`。草稿、plan、briefs、reviews、`progress.yaml` 只写 `product/<slug>/`。尊重用户给出的显式路径。默认 slug：文件输入用 `<file-stem>-sdd`，会话输入用 `YYYY-MM-DD-<short-name>-sdd`。冲突则询问。
 
-不写 `wiki-position.md`、`wiki-plan.json`、`evidence-registry.md`。不运行 `ba2md check` 作为流程步骤。
+不写 `wiki-position.md`、`wiki-plan.json`、`evidence-registry.md`。`progress.yaml` 禁止写入证据 ID、findings、wiki 页清单。新会话可跑 `ba2md check --product product/<slug>` 核对游标与磁盘；check 不是质量门，不替代审查。
+
+## 续跑
+
+每个会话的第一步。不按节点懒加载。
+
+1. 定 slug：用户给出的路径，或 `product/` 下唯一的 `progress.yaml`；多个则问。
+2. 没有 `product/<slug>/progress.yaml`：从 `{SKILL_DIR}/assets/progress-template.yaml` 拷过去，填 `slug`，`node: analyze`，继续。
+3. 有文件：先读。不要重做更早的节点，除非 `waiting_for: user` 且用户意见被分类回更早节点。
+4. 可跑 `ba2md check --product product/<slug>` 核对指针与磁盘。
+5. 跳到 `node`，只加载该节点参考（`wiki.md` / `research.md` / `draft.md`）。
+6. 每个节点边界、以及停轮之前，更新 `progress.yaml`。子代理不得写该文件。
+
+会话在派遣中途断掉时，看 `waiting_for` 与磁盘：
+
+| `waiting_for` | 续跑 |
+|---------------|------|
+| `research` | unit 表对 `briefs/*.md`；缺则重派；有则验收并前进 |
+| `review` | 本轮审查文件：缺则重派；有则合并文件头 `Result:`，写入 `last_result` 与 `review.draft_sha256` |
+| `user` | 不再审。用户问起再复述交卷。按下一条用户消息分类 |
+
+**已审查**当且仅当：`review.last_result` 为 `DELIVER`，本轮 `review.files.*` 由子代理写出，且 `review.draft_sha256 == draft.sha256`（均非空）。聊天里的 `REVIEW_WRITTEN` 只在本会话有效。磁盘上有 `reviews/*.md` 本身不算已审查。`DELIVER` 之后 draft 哈希变了 → 审查过期：`node: review`，`last_result: none`，`round` +1，重派。
 
 **输出语言。** 交付物与过程产物散文跟 `workspace.yaml` `language:`（缺省 `zh`）。证据锚点、ID、代码标识、API 路径、字段/表/schema 名、配置键、引文一律不译。
 
 进入节点才加载：
 
-- Wiki / 确认范围：`references/wiki.md`
+- 消费 wiki：`references/wiki.md`
 - 调研：`references/research.md`、`assets/research-brief-template.md`。调研不打开 `templates/sections/`。
 - 写 Draft / 审查：`references/draft.md`。先读磁盘上的 `templates/sdd.md`，按**需求**判断哪些可选节要写，再只打开那些节对应的 `templates/sections/<file>`。不通读 `sections/`。
 - 交给用户：`references/draft.md`
@@ -59,7 +81,7 @@ Intake 不加载 `templates/`。内部包整包替换 `templates/` 后，仍只�
 
 ```text
 1. 分析需求
-2. 消费 wiki          # discover 实树 → 从总到分读存在的页
+2. 消费 wiki          # discover 结构树 → 按 wiki.md 走完
 3. 确认范围            # 问用户：这次改哪些仓
 4. 调研                # 每个已确认源一个子代理 → briefs/*.md
 5. 写 Draft            # 读模板；缺事实可再派调研；证据写进稿
@@ -82,23 +104,20 @@ Intake 不加载 `templates/`。内部包整包替换 `templates/` 后，仍只�
 
 记下用户是否 **点名了源码仓**（`sources/<id>` 或仓库名）。该标记驱动确认范围。
 
-完成：选中需求有路径与哈希，且已写「是否点名源码仓」。
+完成：选中需求有路径与哈希，且已写「是否点名源码仓」。`progress.yaml` 的 `intake` 已填，`node: wiki`。
 
 ### 2. 消费 wiki
 
-读 `references/wiki.md`。**第一步：** `ba2md discover --json`（回退：`workspace.yaml` + 一层 listing）。用返回的 `outline` 当结构真相，不要假设 `source.md` 存在。
+1. 跑 `ba2md discover --json`（回退：`workspace.yaml` + 一层 listing），拿到每个 wiki 的 `outline.tree`。
+2. 读 `references/wiki.md`，按它走完。
 
-按从总到分读 **outline 里实际有的页**：总揽 → 框架 → 被需求或上层页点到的局部。没有的文件跳过，记 wiki GAP。
-
-主会话读 wiki（下一跳要问用户）。多份 `wiki/<id>/` 时，每个 wiki 可派一个子代理，只返回候选仓 + 词表 + GAP。
-
-完成：`research-plan.md` 有 Wiki 候选（owner / collaborator / maybe，缺则 `none` 或 wiki GAP）、词表、已读页。此时尚未源码调研。
+完成：`research-plan.md` 列出**实际打开过的路径**，且每个候选 `sources/<id>` 有一行依据（读过的 wiki 页，或「wiki 未覆盖 + 需求仍指向」）。`progress.yaml` `node: confirm`。尚未打开 `sources/` 做调研。空表不算完成。
 
 ### 3. 确认范围
 
 出示候选仓表，一问确认 / 增 / 删。Intake 未点名仓，或 wiki 候选与点名不一致时 **必须问**。已点名且与 owner + collaborator 一致则抄进已确认源，继续。
 
-完成：`research-plan.md` 的 **已确认源** 表非空。没有该表不得开源码调研。
+完成：`research-plan.md` 的 **已确认源** 表非空，且已抄进 `progress.yaml` `confirmed_sources`，`node: research`。没有该表不得开源码调研。问用户时 `waiting_for: user`。
 
 ### 4. 调研
 
@@ -106,7 +125,7 @@ Intake 不加载 `templates/`。内部包整包替换 `templates/` 后，仍只�
 
 **每个已确认 `sources/<id>/` 一个子代理**，写那份 `briefs/<unit-id>.md`。主会话可留下它已经打开的那一棵。不按 concern、不按模板小节、不估规模。
 
-完成：每个已确认源有 brief 路径或显式排除；且 `briefs/` 非空。
+完成：每个已确认源有 brief 路径或显式排除；且 `briefs/` 非空。`progress.yaml` 的 `research.accepted` / `open` 与源 `status` 已更新，`node: draft`。派遣期间 `waiting_for: research`。
 
 ### 5. 写 Draft
 
@@ -120,34 +139,34 @@ Intake 不加载 `templates/`。内部包整包替换 `templates/` 后，仍只�
 
 每个 `ADD` 写明检查过的旧缝及为何不够。草稿头 `Constraints read:` 列出 `sdd.md` 与实际打开过的节文件。
 
-完成：判定要写的节有正文或 GAP；不写的节有 N/A 或已省略。无 `Constraints read:` 不得进入审查。
+完成：判定要写的节有正文或 GAP；不写的节有 N/A 或已省略。无 `Constraints read:` 不得进入审查。写完后填 `draft.path` 与 `draft.sha256`（文件 SHA-256），`node: review`。
 
 ### 6. 审查
 
 读 draft 参考，**派**子代理审这份 draft。默认两个维度：结构、证据。需要时可再派。主会话不写审查 findings。
 
-合并结果只分两路：`WRITE`（回写；缺事实必须先调研）或 `DELIVER`（交给用户）。不运行 `ba2md check`。
+合并结果只分两路：`WRITE`（回写；缺事实必须先调研）或 `DELIVER`（交给用户）。
 
-完成：本轮各维度 `REVIEW_WRITTEN` 存在，合并为 `WRITE` 或 `DELIVER`。主会话手写的审查文件不算。
+完成：本轮各维度审查文件存在且由子代理写出，合并为 `WRITE` 或 `DELIVER`，并写入 `progress.yaml`：`review.last_result`、`review.draft_sha256`（= 当前 `draft.sha256`）、`review.files`。`WRITE` → `node: draft`（缺事实则 `waiting_for: research`）。`DELIVER` → `node: wait`，`waiting_for: user`。主会话手写的审查文件不算。派遣期间 `waiting_for: review`。
 
 ### 7. 交给用户
 
 `DELIVER` 后交草稿路径、已确认源、关键 GAP/待决问题，然后 **停轮**。
 
-完成：本轮不再提问。下一条用户消息按 draft 参考分类。仅在明确 `定稿` / `LGTM` / `确认终稿` 后写 `{slug}.md`。沉默或「看起来还行」不是确认。
+完成：本轮不再提问。`progress.yaml` `node: wait`，`waiting_for: user`。下一条用户消息按 draft 参考分类。仅在明确 `定稿` / `LGTM` / `确认终稿` 后写 `{slug}.md`，并设 `node: final`、`final: true`。沉默或「看起来还行」不是确认。
 
 ## 硬规则
 
 - `requirements/`、`templates/`、`wiki/`、`sources/` 只读。
 - 散文跟工作区语言；标识符保持原文。
 - 从 `ba2md discover --json` 开始；只在具体的 `sources/<id>` 与 `wiki/<id>/…` 下搜索。
-- Wiki 按 outline 从总到分读存在的页；不写死必读某个文件名。
+- Wiki 是地图（SUMMARY）：按 `outline.tree` 从浅到深走。精确当前标识只来自稿内带原文锚点的 FACT。
 - 有 **已确认源** 才开源码调研。
-- Wiki 是 SUMMARY；精确当前标识只来自稿内带原文锚点的 FACT。
 - 无依据记 GAP；不编造，不让用户猜事实。
 - 优先既有缝；每个 `ADD` 需要旧缝不足的证据。
 - 调研：每个已确认源一个子代理。写阶段缺事实可再派。
+- `progress.yaml` 是游标；子代理不写。审查是否完成看 `last_result` + draft 哈希，不看聊天回执。
 - 审查对象是 draft；不过回写，过了交给用户。
 - 写作/审查：先读 `sdd.md`，再按需求打开对应节文件。`sections/` 里有文件不等于必须写。
-- 终稿挡住：未解的关键 GAP/CONFLICT、未清的改动节、审查未 `DELIVER`、缺少明确确认。
+- 终稿挡住：未解的关键 GAP/CONFLICT、未清的改动节、审查未 `DELIVER` 或 draft 哈希与 `review.draft_sha256` 不一致、缺少明确确认。
 - 除非用户明确要求，否则不 commit / push。

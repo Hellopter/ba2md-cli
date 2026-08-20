@@ -70,9 +70,9 @@ No workspace Git repo is initialized. Root `AGENTS.md` / `CLAUDE.md` are not mod
 | `ba2md requirement remove <name.md>` | Delete snapshot + registry entry |
 | `ba2md status` | Summarize resources and Skill installs |
 | `ba2md status --json` | Same summary as machine-readable JSON |
-| `ba2md discover` | Inventory managed sources/wiki and expand logical projects |
-| `ba2md discover --json` | Machine-readable inventory of mounted ids (not wiki page types) |
-| `ba2md check --product <dir>` | Optional: accepted research units require a non-empty `briefs/` |
+| `ba2md discover` | Inventory managed sources/wiki, logical projects, and each wiki's structure tree |
+| `ba2md discover --json` | Same inventory as JSON, including `outline.tree` (paths only; not page types) |
+| `ba2md check --product <dir>` | Optional: `progress.yaml` cursor vs product dir (briefs, draft, stale review) |
 | `ba2md doctor` | Health checks; nonzero exit on problems |
 | `ba2md skill install` | Install/refresh Skill into `.agents` and `.claude` |
 | `ba2md skill status` | Show digests / drift |
@@ -97,18 +97,20 @@ Commands invoked below the workspace root walk upward to the nearest `workspace.
 Install Claude Code or OpenCode, open the initialized workspace, and use the **ba2md** Skill (`$ba2md`). Runtime:
 
 ```text
-analyze IR → consume wiki (discover outline, coarse to fine) → confirm scope
+analyze IR → consume wiki (discover structure tree) → confirm scope
   → research subagents write briefs/ → write draft (evidence in the draft)
   → structure + evidence review of the draft → deliver or rewrite → wait
 ```
 
 - The packaged Skill (`skill/ba2md/`) is Chinese. `{SKILL_DIR}/templates/` (`sdd.md` + `sections/`) may be replaced wholesale by an internal pack — **same layout, different markdown bodies**.
-- `ba2md discover --json` lists mounted `sources/<id>` and `wiki/<id>`, plus each wiki's `outline` (real dirs and markdown paths). It does not classify page types.
-- The Skill reads the outline from general to specific (overview / architecture first, then named local pages). Missing filenames such as `source.md` are skipped. It does not write `wiki-plan.json`, `wiki-position.md`, or `evidence-registry.md`.
+- Resume across sessions from `product/<slug>/progress.yaml` (node, waiting_for, draft/review hashes). Copy `assets/progress-template.yaml`. Subagents do not write this file.
+- `ba2md discover --json` lists mounted `sources/<id>` and `wiki/<id>`, plus each wiki's `outline.tree` (real dirs and markdown paths). It does not classify page types. Logical-project `marker` files are not a reading order.
+- Wiki reading rules live only in the Skill (`references/wiki.md`): walk the tree shallow to deep, open a subtree when the IR or an already-read page names it. The Skill does not write `wiki-plan.json`, `wiki-position.md`, or `evidence-registry.md`.
 - If intake did not name source repos, the Skill asks the user to confirm the `sources/<id>` list before briefs.
 - Research units land in `product/<slug>/briefs/`. One subagent per confirmed source root, not one per template section.
 - Evidence (anchors, decisions, gaps) lives in `<slug>.draft.md`. Review subagents judge that draft (structure and evidence). Fail → rewrite (research again if facts are missing). Pass → deliver and wait.
-- `ba2md check` is optional and only checks that accepted research left a non-empty `briefs/`. The Skill does not run it as a process gate.
+- Review is durable only when `progress.yaml` has `last_result: DELIVER` and `review.draft_sha256` matches the current draft. Chat `REVIEW_WRITTEN` is session-local.
+- `ba2md check --product` is optional: it verifies the cursor against disk (missing progress after work started, empty briefs, stale review hashes). It is not a design-quality gate. The Skill may run it on resume.
 
 Agents must not enumerate projects with workspace-wide `sources/**` or `wiki/*.md` searches. Wiki is positioning (`SUMMARY`); precise current identifiers need anchors under `sources/<id>/` written in the draft.
 

@@ -14,7 +14,8 @@
 - 已读 wiki 页 / Wiki 候选 / 词表 / Wiki GAP
 - **已确认源**
 - 研究 unit 表
-- 执行状态
+
+节点、在等谁、accepted 计数写在 `progress.yaml`，不要在本文件再维护一份执行状态。
 
 ```markdown
 ## 已确认源
@@ -26,12 +27,6 @@
 | Unit ID | Trigger | Source ID | Questions | Brief path | Status |
 |---------|---------|-----------|-----------|------------|--------|
 | | initial/repair | | | `briefs/<unit-id>.md` | |
-
-## 执行状态
-- Current node:
-- Open research units:
-- Accepted research units:
-- Dirty sections:
 ```
 
 表格保持瘦。一两行加显式 GAP 好过一张空想大表。
@@ -52,7 +47,6 @@
 
 | 阶段 | root | 谁写 |
 |------|------|------|
-| 读 wiki | 每个 `wiki/<id>/` | 主会话；多份 wiki 时每个一个子代理 |
 | 调研 | 每个已确认 `sources/<id>/` | 一个子代理，写那份 brief |
 | 写稿补搜 | 点名的缺失源 / 符号 | 一个 `repair-*` 子代理 |
 
@@ -87,7 +81,7 @@ Java 测试排除同 `SKILL.md`。
 
 同时拒或修：精确标识无原文锚点；代码级主张只有 wiki；当前与拟议行为混写；声称搜过但无日志。
 
-不凭记忆摘要——重开每份 brief。验收结论记在 research-plan，不另建证据库。
+不凭记忆摘要——重开每份 brief。验收结论记在 `progress.yaml`（源 `status`、`research.accepted` / `open`）与 research-plan 的 unit 表，不另建证据库。派遣期间 `waiting_for: research`。本批完成后 `node: draft`。
 
 ## 还要调研？
 

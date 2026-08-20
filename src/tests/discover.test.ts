@@ -66,6 +66,15 @@ describe('discover inventory', () => {
     assert.ok(wiki.outline.pages.some((p) => p.path.endsWith('billing/api.md')));
     assert.ok(wiki.outline.pages.some((p) => p.path.endsWith('orders/deep/note.md')));
     assert.equal(wiki.outline.truncated, false);
+    assert.equal(wiki.outline.tree.type, 'dir');
+    assert.match(formatDiscover(report), /tree:/);
+    assert.match(formatDiscover(report), /marker=/);
+    assert.doesNotMatch(formatDiscover(report), /entry=/);
+    const text = formatDiscover(report);
+    assert.match(text, /billing\//);
+    assert.match(text, /api\.md/);
+    assert.match(text, /deep\//);
+    assert.match(text, /note\.md/);
   });
 
   it('lists wiki outline pages even when source.md is absent', async () => {
@@ -86,8 +95,33 @@ describe('discover inventory', () => {
       wiki.outline.pages.some((p) => p.path.endsWith('source.md')),
       false,
     );
+    assert.equal(wiki.outline.tree.type, 'dir');
+    assert.ok(wiki.outline.tree.children?.some((n) => n.name === 'overview.md'));
+    assert.ok(
+      wiki.outline.tree.children?.some(
+        (n) => n.type === 'dir' && n.name === 'domains' && n.children?.some((c) => c.name === 'billing.md'),
+      ),
+    );
     assert.match(formatDiscover(report), /outline:/);
-    assert.match(formatDiscover(report), /Do not require source\.md/);
+    assert.match(formatDiscover(report), /tree:/);
+    assert.match(formatDiscover(report), /Walk each wiki outline\.tree/);
+    assert.doesNotMatch(formatDiscover(report), /Do not require source\.md/);
+    assert.doesNotMatch(formatDiscover(report), /overview\/architecture first/);
+  });
+
+  it('builds a tree when the root page is a Chinese filename', async () => {
+    const cwd = await makeTempDir();
+    const { root } = await initWorkspace('ws', cwd);
+    const wikiDir = path.join(cwd, 'cn-wiki');
+    await writeFile(path.join(wikiDir, '架构.md'), '# arch\n');
+    await addWiki(root, wikiDir, { id: 'cn' });
+
+    const config = await readWorkspaceConfig(root);
+    const report = await collectDiscover(root, config);
+    const wiki = report.wiki[0];
+    assert.ok(wiki.outline.pages.some((p) => p.path.endsWith('架构.md')));
+    assert.ok(wiki.outline.tree.children?.some((n) => n.name === '架构.md' && n.type === 'page'));
+    assert.match(formatDiscover(report), /架构\.md/);
   });
 
   it('treats wiki entry root with README as a single logical project', async () => {

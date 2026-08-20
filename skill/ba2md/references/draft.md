@@ -12,6 +12,7 @@
 4. 判定不写的节：一行 N/A 理由，或按当时 `sdd.md` 允许省略。不要打开它的节文件。
 5. `sdd.md` 里没有对应节文件的标题：保持标题，允许空白。
 6. 草稿头写 `Constraints read:`（`sdd.md` + 实际打开过的节文件）。无清单则本步未完成，不得进入审查。
+7. 写完后更新 `progress.yaml`：`draft.path`、`draft.sha256`（文件 SHA-256），`node: review`。
 
 前置：已确认源存在；已有 brief 或写阶段将补调研。
 
@@ -40,22 +41,24 @@
 | 结构 | `reviews/content-review-<round>-structure.md` | 需求、`sdd.md`、判定要写的节约束、草稿 | 先读 `sdd.md` 和需求，自己判断哪些可选节该写，再只打开那些节文件。该写的节符合该文件输出格式；不该写的节有 N/A 或省略即过。不得因「sections/ 里有这个文件」要求写满。该写却空、且无 GAP → `WRITE`；缺事实则 `needs_research`。 |
 | 证据 | `reviews/content-review-<round>-evidence.md` | **草稿**；抽查时打开对应 brief | 精确标识在稿内有原文锚点；未把 wiki/需求写成当前实现；`ADD` 写了检查过的缝。本角色不 grep `sources/`（那是调研）。缺锚点 / 锚点对不上 → `WRITE` 且 `needs_research`。 |
 
-每个子代理的 prompt 含绝对输出路径，以及：「只读并更新这一文件。只返回：`REVIEW_WRITTEN <path>` + finding 计数。审查对象是 draft。」
+每个子代理的 prompt 含绝对输出路径，以及：「只读并更新这一文件。只返回：`REVIEW_WRITTEN <path>` + finding 计数。审查对象是 draft。」派遣期间 `progress.yaml` `waiting_for: review`。
 
-高风险 / 用户要求：允许第三子代理 `adversarial-refuter`。
+高风险 / 用户要求：允许第三子代理 `adversarial-refuter`（写入 `review.files` 的额外键）。
 
-完成：本轮各维度 `REVIEW_WRITTEN` 存在。按并集合并；按 `(section, problem fingerprint)` 去重。
+完成：本轮各维度审查文件存在且由子代理写出。按并集合并文件头 `Result:`；按 `(section, problem fingerprint)` 去重。合并结果写入 `progress.yaml`：`review.last_result`、`review.files`、`review.draft_sha256`（= 当前 `draft.sha256`）。聊天里的 `REVIEW_WRITTEN` 只在本会话有效。
 
 | 合并结果 | 下一步 |
 |----------|--------|
-| `WRITE`（含 `needs_research`） | 回写作。先派 `repair-*` 调研，再改稿，再审。禁止只改措辞补事实。 |
-| `WRITE`（仅结构/格式，证据已在稿内） | 回写作，用已有 briefs 改稿，再审。改的时候发现缺 FACT → 升级为先调研。 |
-| `DELIVER` | 交给用户，停轮 |
-| `DELIVER` 但有用户该拍板的分叉 | 交给用户，问题放进菜单，不停下来盘问 |
+| `WRITE`（含 `needs_research`） | `node: draft`，`waiting_for: research`。先派 `repair-*`，再改稿，再审。禁止只改措辞补事实。 |
+| `WRITE`（仅结构/格式，证据已在稿内） | `node: draft`。用已有 briefs 改稿，再审。改的时候发现缺 FACT → 升级为先调研。 |
+| `DELIVER` | `node: wait`，`waiting_for: user`。交给用户，停轮 |
+| `DELIVER` 但有用户该拍板的分叉 | 同上；问题放进菜单，不停下来盘问 |
 
-`content_review_round` 上限 3。到顶仍有可搜的缺失标识：继续 `WRITE` 补调研。没有新假设：带着 GAP `DELIVER`，由用户决定是否接受。
+`review.round` 上限 3。到顶仍有可搜的缺失标识：继续 `WRITE` 补调研。没有新假设：带着 GAP `DELIVER`，由用户决定是否接受。
 
-不运行 `ba2md check`。审查完成不看「reviews/ 里有没有文件」，看子代理是否写出 `REVIEW_WRITTEN` 以及合并结果。
+**已审查**当且仅当 `last_result: DELIVER` 且 `review.draft_sha256 == draft.sha256`（均非空），且本轮 `review.files.*` 在磁盘上。有 `reviews/*.md` 本身不算。draft 改过导致哈希不一致 → 审查过期：`node: review`，`last_result: none`，`round` +1，重派。
+
+可跑 `ba2md check --product` 核对游标与磁盘。check 不是质量门。
 
 仅措辞改动：可只派结构。范围/源/证据/API/schema 变化后：两维度都派。交给用户前必须两维度。
 
@@ -99,7 +102,7 @@
 | 设计分叉 | 只重写受影响小节（决策记在稿内第 5 章） |
 | 措辞 | 局部改稿 |
 
-改完后 **再派** 对应审查（全量两维度，或措辞后只派结构）。用 **delta** 再交。
+改完后更新 `draft.sha256`，**再派** 对应审查（全量两维度，或措辞后只派结构）。用 **delta** 再交。旧审查因哈希不一致作废。
 
 ## 终稿
 
@@ -108,7 +111,7 @@
 - 用户见过最新 `DELIVER` 候选及其变更摘要
 - 每个用户已咬住的关键决策已确认、推迟、或被替代
 - 每个改过的节已重写
-- 最近一次审查为 `DELIVER`（或用户把透明 GAP 接受为非终稿——则不定稿）
+- 最近一次审查为 `DELIVER` 且 `review.draft_sha256` 等于当前 draft 哈希（或用户把透明 GAP 接受为非终稿——则不定稿）
 - 用户明确确认（`定稿` / `LGTM` / `确认终稿` / `finalize`）
 
-沉默、「看起来还行」、或空积压都不是确认。
+写 `{slug}.md` 后：`node: final`，`final: true`。沉默、「看起来还行」、或空积压都不是确认。

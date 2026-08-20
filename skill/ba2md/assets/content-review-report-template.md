@@ -7,6 +7,8 @@
 - Result: WRITE / DELIVER
 - needs_research: yes / no
 
+续跑时主会话只读本文件头的 `Result` / `needs_research` 做合并，写入 `progress.yaml`。不要把 findings 抄进 progress。
+
 ## Coverage gates（结构角色必填；证据角色可 n/a）
 
 先读 `sdd.md` + 需求，判断哪些节该写；不要把 `sections/` 目录当必写清单。
