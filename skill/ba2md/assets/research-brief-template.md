@@ -25,7 +25,7 @@
 
 ## Evidence Candidates
 
-> Brief 是调研笔记。候选只标 `FOUND`。写 draft 时主会话重开原文，把锚点写进稿。不要另建证据登记册。
+> 候选只标 `FOUND`。写 draft 时主会话重开原文锚点。
 
 | Candidate ID | Label | Status | Source type | Claim | 精确原文锚点 | Symbol | 支撑的节 |
 |--------------|-------|--------|-------------|-------|--------------|--------|----------|

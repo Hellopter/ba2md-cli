@@ -1,18 +1,17 @@
-# Draft、审查与用户循环
+# 写稿、审查与用户循环
 
 ## 写作
 
-按此顺序读文件，然后写 `{slug}.draft.md`。模板提供结构，不提供事实。证据写在稿里，不另建登记册。
-
-内部包会整包替换 `templates/`。只认**当时磁盘上的** `sdd.md` 与它点名的节文件，不要假设本仓库样例的注释、Required/Conditional 标记或适用性段落还在。
+按此顺序读文件，然后写 `{slug}.draft.md`。模板提供结构，不提供事实。证据写在稿里。
 
 1. 读 `{SKILL_DIR}/templates/sdd.md`：文档大纲，以及它点名的 `sections/<file>`。
-2. **按需求**判断哪些可选节要写。问的是「这次需求改不改页面 / 内部接口 / 外部接口 / 库表 / 集成 / 扩展……」，不是「`sections/` 目录里有没有这个文件」。
+2. **按需求**判断哪些可选节要写（改不改页面 / 内部接口 / 外部接口 / 库表 / 集成 / 扩展……），不是「`sections/` 目录里有没有这个文件」。
 3. 只打开判定要写的那些节文件，按该文件的 `Output Format` / `输出格式`（或包内等价标题）写。
 4. 判定不写的节：一行 N/A 理由，或按当时 `sdd.md` 允许省略。不要打开它的节文件。
 5. `sdd.md` 里没有对应节文件的标题：保持标题，允许空白。
-6. 草稿头写 `Constraints read:`（`sdd.md` + 实际打开过的节文件）。无清单则本步未完成，不得进入审查。
-7. 写完后更新 `progress.yaml`：`draft.path`、`draft.sha256`（文件 SHA-256），`node: review`。
+6. 写完后更新 `progress.yaml`：`draft.path`、`draft.sha256`（文件 SHA-256），`node: review`。
+
+草稿和终稿只写设计。不要把读过哪些模板文件列进稿里。
 
 前置：已确认源存在；已有 brief 或写阶段将补调研。
 
@@ -24,15 +23,13 @@
 
 缺承载事实（路由、字段、符号、schema、权限、限额、告警、边界任一端）则 **停该节并派调研子代理**（见 `references/research.md` 的 `repair-*`）。有界研究收敛为空则记 GAP。禁止用已有句子改写来冒充新事实。
 
-承载句旁放锚点或主张 ID，例如 `` `sources/<id>/Foo.java:80-112` ``。决策、冲突、缺口写入稿内第 5 章，不写到 `evidence-registry.md`。
+承载句旁放锚点或主张 ID，例如 `` `sources/<id>/Foo.java:80-112` ``。决策、冲突、缺口写入稿内第 5 章。
 
-不得修改 `templates/`。`Constraints read:` 不是对模板的写回。
+不得修改 `templates/`。
 
 ## 审查 — 对象是这份详细设计
 
-每个可读草稿都要跑。审查员只写 findings——不改草稿、不定终稿。
-
-**主会话不写审查 findings。** 草稿作者写的 `content-review-*.md` 不算完成本步。
+每个可读草稿都要跑。审查员只写 findings——不改草稿、不定终稿。主会话不写审查 findings。草稿作者写的 `content-review-*.md` 不算完成本步。
 
 按维度派子代理。默认两个，需要时可加。先把 `{SKILL_DIR}/assets/content-review-report-template.md` 拷到各路径，填好合同（角色、路径、轮次）。
 
@@ -41,11 +38,11 @@
 | 结构 | `reviews/content-review-<round>-structure.md` | 需求、`sdd.md`、判定要写的节约束、草稿 | 先读 `sdd.md` 和需求，自己判断哪些可选节该写，再只打开那些节文件。该写的节符合该文件输出格式；不该写的节有 N/A 或省略即过。不得因「sections/ 里有这个文件」要求写满。该写却空、且无 GAP → `WRITE`；缺事实则 `needs_research`。 |
 | 证据 | `reviews/content-review-<round>-evidence.md` | **草稿**；抽查时打开对应 brief | 精确标识在稿内有原文锚点；未把 wiki/需求写成当前实现；`ADD` 写了检查过的缝。本角色不 grep `sources/`（那是调研）。缺锚点 / 锚点对不上 → `WRITE` 且 `needs_research`。 |
 
-每个子代理的 prompt 含绝对输出路径，以及：「只读并更新这一文件。只返回：`REVIEW_WRITTEN <path>` + finding 计数。审查对象是 draft。」派遣期间 `progress.yaml` `waiting_for: review`。
+每个子代理的 prompt 含绝对输出路径，以及：「只读并更新这一文件。只返回：`REVIEW_WRITTEN <path>` + finding 计数。审查对象是 draft。」派遣期间 `waiting_for: review`。
 
 高风险 / 用户要求：允许第三子代理 `adversarial-refuter`（写入 `review.files` 的额外键）。
 
-完成：本轮各维度审查文件存在且由子代理写出。按并集合并文件头 `Result:`；按 `(section, problem fingerprint)` 去重。合并结果写入 `progress.yaml`：`review.last_result`、`review.files`、`review.draft_sha256`（= 当前 `draft.sha256`）。聊天里的 `REVIEW_WRITTEN` 只在本会话有效。
+完成：本轮各维度审查文件存在且由子代理写出。按并集合并文件头 `Result:`；按 `(section, problem fingerprint)` 去重。合并结果写入 `progress.yaml`：`review.last_result`、`review.files`、`review.draft_sha256`（= 当前 `draft.sha256`）。聊天 `REVIEW_WRITTEN` 只在本会话有效。已审查定义见 SKILL 续跑。
 
 | 合并结果 | 下一步 |
 |----------|--------|
@@ -56,25 +53,17 @@
 
 `review.round` 上限 3。到顶仍有可搜的缺失标识：继续 `WRITE` 补调研。没有新假设：带着 GAP `DELIVER`，由用户决定是否接受。
 
-**已审查**当且仅当 `last_result: DELIVER` 且 `review.draft_sha256 == draft.sha256`（均非空），且本轮 `review.files.*` 在磁盘上。有 `reviews/*.md` 本身不算。draft 改过导致哈希不一致 → 审查过期：`node: review`，`last_result: none`，`round` +1，重派。
-
-可跑 `ba2md check --product` 核对游标与磁盘。check 不是质量门。
-
 仅措辞改动：可只派结构。范围/源/证据/API/schema 变化后：两维度都派。交给用户前必须两维度。
 
 ## 与用户互动
 
-### 锁定源
+锁定源见 SKILL 节点 3：owner + wiki 判为相关的仓直接锁定并调研；只问读完 wiki 仍待定的点。
 
-见 SKILL 节点 3。owner + wiki 判为相关的仓直接锁定并调研；只问读完 wiki 仍待定的点。
-
-### 写作中途
-
-仅用户该拍板的产品分叉才打断：两种设计产品影响不同、缺验收、接受关键 GAP。API 路径与标识在语料里查。
+写作中途仅用户该拍板的产品分叉才打断：两种设计产品影响不同、缺验收、接受关键 GAP。API 路径与标识在语料里查。
 
 ### 交给用户
 
-仅当审查合并为 `DELIVER` 时进入。一次交卷，然后 **停轮**：
+仅当审查合并为 `DELIVER` 时进入。一次交卷，然后停轮：
 
 - 草稿路径
 - 已确认源与建议方向
@@ -84,9 +73,7 @@
 
 完成：本轮不再提问。用户主导。自由评论高于代理积压。
 
-用户咬住分叉时，**一轮一问**，推荐项在前。事实在 wiki/sources/briefs/draft 里查。
-
-### 问什么
+用户咬住分叉时，一轮一问，推荐项在前。事实在 wiki/sources/briefs/draft 里查。
 
 问：需求含义、范围内外、哪些产品/系统、已调研设计中的选择、风险接受。
 
@@ -102,7 +89,7 @@
 | 设计分叉 | 只重写受影响小节（决策记在稿内第 5 章） |
 | 措辞 | 局部改稿 |
 
-改完后更新 `draft.sha256`，**再派** 对应审查（全量两维度，或措辞后只派结构）。用 **delta** 再交。旧审查因哈希不一致作废。
+改完后更新 `draft.sha256`，再派对应审查（全量两维度，或措辞后只派结构）。用 delta 再交。旧审查因哈希不一致作废。
 
 ## 终稿
 
