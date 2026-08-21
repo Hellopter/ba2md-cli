@@ -62,4 +62,4 @@ Wiki 是需求与项目之间的第一座桥（SUMMARY）：这个项目是什�
 
 ## 谁读
 
-每个需要判断的 `wiki/<id>/` 都要读。一份：主会话。两份及以上：每个 wiki 一个子代理，交回项目理解 + 需求落点 + 该 wiki 上的源判断。子代理不写 `research-plan.md` / `progress.yaml`。主会话合并后写盘。
+每个需要判断的 `wiki/<id>/` 都要读。本节点一份：主会话读。两份及以上：每个 wiki 一个子代理，交回项目理解 + 需求落点 + 该 wiki 上的源判断。子代理不写 `research-plan.md` / `progress.yaml`。主会话合并后写盘。

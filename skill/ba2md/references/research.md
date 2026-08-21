@@ -1,6 +1,6 @@
 # 调研与 Brief
 
-在 wiki 落点上用源码加深。Brief 是子代理笔记，永不替代 draft 锚点。每个完成 unit 写 `product/<slug>/briefs/<unit-id>.md`（形状：`assets/research-brief-template.md`）。调研之后 `briefs/` 为空即失败。
+在 wiki 落点上用源码加深。Brief 是子代理笔记；写 draft 时主会话重开原文锚点。每个完成 unit 写 `product/<slug>/briefs/<unit-id>.md`（形状：`assets/research-brief-template.md`）。调研之后 `briefs/` 为空即失败。
 
 按已确认源拆 unit，不按模板小节，不打开 `templates/sections/`。
 
@@ -28,35 +28,30 @@
 
 会改变承载标识（API / 表 / 事件 / 鉴权 / 缝）且有具体搜索假设 → 开 unit 或折进本批。
 
-| 阶段 | root | 谁写 |
-|------|------|------|
-| 调研 | 每个已确认 `sources/<id>/` | 一个子代理，写那份 brief |
-| 写稿补搜 | 点名的缺失源 / 符号 | 一个 `repair-*` 子代理 |
+## 派遣
 
-主会话可留下它本轮已经打开的那一棵，自己写那份。同一 `sources/<id>`、同一假设 → 一个写者。子代理只写自己的 brief，不写 SDD、不写平行证据库。
+每个已确认 `sources/<id>/` 派遣一个子代理写那份 brief。写稿补搜：每个缺口一个 `repair-*` 子代理。同一 `sources/<id>`、同一假设 → 一个子代理。子代理只更新自己的 brief。
 
-## Unit I/O
-
-开工前 brief 已有冻结的 `## Unit Contract`：unit id、trigger、source id、具体 `sources/<id>/…` 根、`R-*` 摘录、有界问题、范围外、不得猜测、输出路径。
+主会话本步：冻结合同、拷 brief 形状、派遣、验收。开工前 brief 已有冻结的 `## Unit Contract`：unit id、trigger、source id、具体 `sources/<id>/…` 根、`R-*` 摘录、有界问题、范围外、不得猜测、输出路径。
 
 过程：只在指定 root（+ 点名的 wiki 页）下搜。只写这一份 brief。不改计划、draft、其他 brief。Java 测试排除同 `SKILL.md`。
 
 完成：Search Log（含空搜）以及 Evidence Candidates 和/或有界 GAP。Brief 里的 FACT 只标 `FOUND`。写 draft 时主会话重开原文锚点。
 
-若派遣：先写好填完合同的 brief。Prompt 含绝对 brief 路径，以及：「只读并更新这一文件。最后动作是保存该 brief。只返回：`BRIEF_WRITTEN <path>` + candidate 计数。」不接受聊天倾倒当 brief。
+Prompt 含绝对 brief 路径，以及：「只读并更新这一文件。最后动作是保存该 brief。只返回：`BRIEF_WRITTEN <path>` + candidate 计数。」不接受聊天倾倒当 brief。派遣期间 `waiting_for: research`。
 
 ## 验收
 
-每批之后，用 `briefs/*.md` 对照未完成 unit。缺文件 = `FAILED_NO_BRIEF` — 重派或补写。然后每份 brief：
+每批之后，用 `briefs/*.md` 对照未完成 unit。缺文件 = `FAILED_NO_BRIEF` — 重派。然后每份 brief：
 
 1. Source ID/root 偏离合同则拒。
 2. 抽查将写入 draft 的承载锚点——重开原文，不是每一行 FOUND。
 3. 错误候选写明理由后拒。
 4. 新的不相交源 → 加入已确认源（仅定位不确定时再问）并为它开覆盖。
 
-同时拒或修：精确标识无原文锚点；代码级主张只有 wiki；当前与拟议行为混写；声称搜过但无日志。
+同时拒：精确标识无原文锚点；代码级主张只有 wiki；当前与拟议行为混写；声称搜过但无日志。拒则重派该 unit。
 
-不凭记忆摘要。结论记在 `progress.yaml` 与 unit 表。派遣期间 `waiting_for: research`。本批完成后 `node: draft`。
+不凭记忆摘要。结论记在 `progress.yaml` 与 unit 表。验收后 `node: draft`。
 
 ## 还要调研？
 

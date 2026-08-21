@@ -32,13 +32,24 @@ description: "根据 Markdown 需求生成有源码依据的软件详细设计�
 
 ## 续跑
 
-每个会话第一步。不按节点懒加载。
+每个会话第一步：读 `progress.yaml`，跳到当前 `node`，只打开该节点参考。
 
 1. 定 slug：用户路径，或 `product/` 下唯一的 `progress.yaml`；多个则问。
 2. 无文件：从 `assets/progress-template.yaml` 拷过去，填 `slug`，`node: analyze`。
 3. 有文件：先读。不重做更早节点，除非 `waiting_for: user` 且用户意见被分类回更早节点。
-4. 跳到 `node`，只加载该节点参考。
-5. 节点边界和停轮前更新 `progress.yaml`。子代理不得写。
+4. 打开该节点参考（见下）。
+5. 节点边界和停轮前更新 `progress.yaml`。子代理不得写该文件。
+
+| `node` | 打开 |
+|--------|------|
+| `analyze` / `confirm` | 本文件对应节点 |
+| `wiki` | `references/wiki.md` |
+| `research` | `references/research.md`、`assets/research-brief-template.md` |
+| `draft` | `references/write.md` |
+| `review` | `references/review.md` |
+| `wait` / `final` | `references/user.md` |
+
+调研不打开 `templates/sections/`。
 
 派遣中途断掉，看 `waiting_for` 与磁盘：
 
@@ -52,12 +63,6 @@ description: "根据 Markdown 需求生成有源码依据的软件详细设计�
 
 交付物散文跟 `workspace.yaml` `language:`（缺省 `zh`）。锚点、ID、代码标识、API 路径、字段/表/schema 名、配置键、引文不译。
 
-进入节点才加载：
-
-- wiki → `references/wiki.md`
-- 调研 → `references/research.md`、`assets/research-brief-template.md`（不打开 `templates/sections/`）
-- 写 / 审 / 交用户 → `references/write.md`
-
 ## 证据
 
 - **REQUIREMENT**：需求 Markdown。目标、范围、规则、验收——不是当前实现。
@@ -69,7 +74,7 @@ description: "根据 Markdown 需求生成有源码依据的软件详细设计�
 
 源码分析排除 Java 测试：`test.java`、`**/src/test/**`、`**/*Test.java`、`**/*Tests.java`、`**/*IT.java`。
 
-证据写在 draft 里：承载句旁放原文锚点（`` `sources/<id>/…:L-L` ``）或主张 ID。第 5 章是稿内附录。Brief 和审查 findings 都不是终局证据。
+证据写在 draft 里：承载句旁放原文锚点（`` `sources/<id>/…:L-L` ``）或主张 ID。第 5 章是稿内附录。精确当前标识以稿内锚点为准；brief / findings 是过程产物。
 
 ## 执行图
 
@@ -77,9 +82,9 @@ description: "根据 Markdown 需求生成有源码依据的软件详细设计�
 1. 分析需求
 2. 消费 wiki          # 每个可能相关的 wiki 按 wiki.md 走完
 3. 锁定源              # owner + 相关进已确认源；待定才问
-4. 调研                # 每个已确认源一个子代理 → briefs/*.md
-5. 写 Draft            # 读模板；缺事实再派调研；证据写进稿
-6. 审查                # 结构 / 证据。WRITE → 5；DELIVER → 交给用户
+4. 调研                # 每个已确认源派遣一个子代理 → briefs/*.md
+5. 写 Draft            # 读模板；缺事实再派 repair-*；证据写进稿
+6. 审查                # 派遣结构 / 证据子代理。WRITE → 5；DELIVER → 7
 7. 等反馈              # 按意见回到 3/4/5，再审再交
 8. 终稿                # 仅明确「定稿」
 ```
@@ -114,9 +119,9 @@ description: "根据 Markdown 需求生成有源码依据的软件详细设计�
 
 ### 4. 调研
 
-读 `references/research.md`。按已确认源拆 unit，不按模板小节。
+读 `references/research.md`。为每个已确认源派遣一个子代理写 `briefs/<unit-id>.md`。按已确认源拆 unit，不按模板小节。
 
-完成：每个已确认源有 brief 路径或显式排除；`briefs/` 非空。`research.accepted` / `open` 与源 `status` 已更新，`node: draft`。派遣期间 `waiting_for: research`。
+完成：每个已确认源有子代理写入的 brief（合同 + Search Log 或有界 GAP）或显式排除；`briefs/` 非空。验收后更新 `research.accepted` / `open` 与源 `status`，`node: draft`。派遣期间 `waiting_for: research`。
 
 ### 5. 写 Draft
 
@@ -126,13 +131,13 @@ description: "根据 Markdown 需求生成有源码依据的软件详细设计�
 
 ### 6. 审查
 
-读 `references/write.md`，派子代理。默认结构、证据。主会话不写 findings。合并只分 `WRITE` / `DELIVER`。
+读 `references/review.md`。派遣结构与证据两个子代理。主会话本步：拷模板、写 prompt、合并文件头 `Result:`。
 
 完成：本轮各维度审查文件由子代理写出，合并结果写入 `review.last_result`、`review.draft_sha256`、`review.files`。`WRITE` → `node: draft`（缺事实则 `waiting_for: research`）。`DELIVER` → `node: wait`，`waiting_for: user`。派遣期间 `waiting_for: review`。
 
 ### 7. 交给用户
 
-`DELIVER` 后交草稿路径、已确认源、关键 GAP/待决，然后停轮。下一条用户消息按 `references/write.md` 分类。仅明确 `定稿` / `LGTM` / `确认终稿` 后写 `{slug}.md`，`node: final`，`final: true`。沉默不是确认。
+`DELIVER` 后读 `references/user.md`，交草稿路径、已确认源、关键 GAP/待决，然后停轮。下一条用户消息按该文件分类。仅明确 `定稿` / `LGTM` / `确认终稿` 后写 `{slug}.md`，`node: final`，`final: true`。沉默不是确认。
 
 ## 硬规则
 
