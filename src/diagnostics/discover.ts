@@ -34,6 +34,9 @@ const SOURCE_IDENTITY_FILES = new Set([
   'makefile',
 ]);
 
+const SKIP_DIR_NAMES = new Set(['node_modules', '.git']);
+export const MAX_WIKI_OUTLINE_PAGES = 500;
+
 export type EntryShape = 'single' | 'nested-projects' | 'empty' | 'missing' | 'mixed';
 
 export interface LogicalProject {
@@ -52,6 +55,24 @@ export interface ManagedSourceInventory {
   notes: string[];
 }
 
+export interface WikiOutlinePage {
+  path: string;
+  depth: number;
+}
+
+export interface WikiOutlineNode {
+  type: 'dir' | 'page';
+  path: string;
+  children?: WikiOutlineNode[];
+}
+
+interface WikiScan {
+  dirs: string[];
+  pages: WikiOutlinePage[];
+  tree: WikiOutlineNode;
+  truncated: boolean;
+}
+
 export interface ManagedWikiInventory {
   id: string;
   type: 'local' | 'git';
@@ -59,6 +80,8 @@ export interface ManagedWikiInventory {
   ok: boolean;
   shape: EntryShape;
   logicalProjects: LogicalProject[];
+  tree: WikiOutlineNode;
+  truncated: boolean;
   notes: string[];
 }
 
@@ -148,6 +171,164 @@ async function collectIdentityFiles(dir: string, relativeRoot: string): Promise<
     .map((name) => toPosix(path.join(relativeRoot, name)));
 }
 
+function emptyTree(): WikiOutlineNode {
+  return { type: 'dir', path: '', children: [] };
+}
+
+function missingWiki(
+  id: string,
+  type: 'local' | 'git',
+  path: string,
+  notes: string[],
+): ManagedWikiInventory {
+  return {
+    id,
+    type,
+    path,
+    ok: false,
+    shape: 'missing',
+    logicalProjects: [],
+    tree: emptyTree(),
+    truncated: false,
+    notes,
+  };
+}
+
+function nodeName(posixPath: string): string {
+  const parts = posixPath.split('/').filter(Boolean);
+  return parts[parts.length - 1] ?? posixPath;
+}
+
+function parentPath(posixPath: string): string {
+  const i = posixPath.lastIndexOf('/');
+  return i <= 0 ? '' : posixPath.slice(0, i);
+}
+
+export function buildWikiTree(
+  relativeWiki: string,
+  dirs: string[],
+  pages: WikiOutlinePage[],
+): WikiOutlineNode {
+  const rootPath = toPosix(relativeWiki);
+  const root: WikiOutlineNode = {
+    type: 'dir',
+    path: rootPath,
+    children: [],
+  };
+  const dirNodes = new Map<string, WikiOutlineNode>([[rootPath, root]]);
+  const sortedDirs = [...dirs].sort((a, b) => {
+    const depth = a.split('/').length - b.split('/').length;
+    return depth !== 0 ? depth : a.localeCompare(b);
+  });
+  for (const dir of sortedDirs) {
+    if (dir === rootPath) continue;
+    const node: WikiOutlineNode = {
+      type: 'dir',
+      path: dir,
+      children: [],
+    };
+    dirNodes.set(dir, node);
+    const parent = dirNodes.get(parentPath(dir)) ?? root;
+    parent.children?.push(node);
+  }
+  for (const page of pages) {
+    const node: WikiOutlineNode = {
+      type: 'page',
+      path: page.path,
+    };
+    const parent = dirNodes.get(parentPath(page.path)) ?? root;
+    parent.children?.push(node);
+  }
+  sortTree(root);
+  return root;
+}
+
+function sortTree(node: WikiOutlineNode): void {
+  if (!node.children) return;
+  node.children.sort((a, b) => {
+    if (a.type !== b.type) return a.type === 'dir' ? -1 : 1;
+    return nodeName(a.path).localeCompare(nodeName(b.path));
+  });
+  for (const child of node.children) sortTree(child);
+}
+
+export function formatWikiTree(tree: WikiOutlineNode, truncated: boolean): string[] {
+  const lines: string[] = [];
+  function walk(node: WikiOutlineNode, indent: string, isRoot: boolean): void {
+    if (node.type === 'dir') {
+      const label = isRoot ? `${node.path}/` : `${nodeName(node.path)}/`;
+      lines.push(`${indent}${label}`);
+      const next = `${indent}  `;
+      for (const child of node.children ?? []) walk(child, next, false);
+      return;
+    }
+    lines.push(`${indent}${nodeName(node.path)}`);
+  }
+  walk(tree, '', true);
+  if (truncated) lines.push('… truncated');
+  return lines;
+}
+
+function pageDepth(relativeWiki: string, pagePath: string): number {
+  const prefix = `${toPosix(relativeWiki)}/`;
+  const rest = toPosix(pagePath).startsWith(prefix)
+    ? toPosix(pagePath).slice(prefix.length)
+    : toPosix(pagePath);
+  if (!rest) return 0;
+  return rest.split('/').length;
+}
+
+async function collectWikiOutline(
+  absoluteWiki: string,
+  relativeWiki: string,
+): Promise<WikiScan> {
+  const dirs: string[] = [toPosix(relativeWiki)];
+  const pages: WikiOutlinePage[] = [];
+  let truncated = false;
+
+  async function walk(abs: string, rel: string): Promise<void> {
+    if (truncated) return;
+    let entries;
+    try {
+      entries = await fsp.readdir(abs, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    entries.sort((a, b) => a.name.localeCompare(b.name));
+    for (const entry of entries) {
+      if (truncated) return;
+      if (entry.name.startsWith('.')) continue;
+      if (SKIP_DIR_NAMES.has(entry.name.toLowerCase())) continue;
+      const childAbs = path.join(abs, entry.name);
+      const childRel = toPosix(path.join(rel, entry.name));
+      const isDir =
+        entry.isDirectory() || (entry.isSymbolicLink() && (await isDirectory(childAbs)));
+      if (isDir) {
+        dirs.push(childRel);
+        await walk(childAbs, childRel);
+        continue;
+      }
+      const lower = entry.name.toLowerCase();
+      if (!lower.endsWith('.md') && !lower.endsWith('.mdx')) continue;
+      if (pages.length >= MAX_WIKI_OUTLINE_PAGES) {
+        truncated = true;
+        return;
+      }
+      pages.push({ path: childRel, depth: pageDepth(relativeWiki, childRel) });
+    }
+  }
+
+  await walk(absoluteWiki, relativeWiki);
+  dirs.sort((a, b) => a.localeCompare(b));
+  pages.sort((a, b) => a.path.localeCompare(b.path));
+  return {
+    dirs,
+    pages,
+    tree: buildWikiTree(relativeWiki, dirs, pages),
+    truncated,
+  };
+}
+
 async function inspectLogicalProject(
   absoluteDir: string,
   relativePath: string,
@@ -230,39 +411,15 @@ async function inspectWikiEntry(
   try {
     absolute = resolveWikiPath(workspaceRoot, id);
   } catch (error) {
-    return {
-      id,
-      type,
-      path: relativePath,
-      ok: false,
-      shape: 'missing',
-      logicalProjects: [],
-      notes: [(error as Error).message],
-    };
+    return missingWiki(id, type, relativePath, [(error as Error).message]);
   }
 
   if (!(await pathExists(absolute))) {
-    return {
-      id,
-      type,
-      path: relativePath,
-      ok: false,
-      shape: 'missing',
-      logicalProjects: [],
-      notes: ['path missing'],
-    };
+    return missingWiki(id, type, relativePath, ['path missing']);
   }
 
   if (!(await isDirectory(absolute))) {
-    return {
-      id,
-      type,
-      path: relativePath,
-      ok: false,
-      shape: 'missing',
-      logicalProjects: [],
-      notes: ['path is not a directory'],
-    };
+    return missingWiki(id, type, relativePath, ['path is not a directory']);
   }
 
   const rootProject = await inspectLogicalProject(absolute, relativePath, id);
@@ -308,6 +465,11 @@ async function inspectWikiEntry(
     logicalProjects = [rootProject];
   }
 
+  const scan = await collectWikiOutline(absolute, relativePath);
+  if (scan.truncated) {
+    notes.push(`wiki tree truncated after ${MAX_WIKI_OUTLINE_PAGES} markdown pages`);
+  }
+
   return {
     id,
     type,
@@ -315,6 +477,8 @@ async function inspectWikiEntry(
     ok: true,
     shape,
     logicalProjects,
+    tree: scan.tree,
+    truncated: scan.truncated,
     notes,
   };
 }
@@ -347,15 +511,9 @@ export async function collectDiscover(
   const guidance = [
     'Use this inventory before any workspace-wide content search.',
     'Source and wiki roots must be concrete paths such as sources/<id> or wiki/<id>[/<project>], never bare sources/ or wiki/.',
-    'Every managed source id must appear in the Candidate Source Impact Map as select or exclude; reference every managed wiki id via a wiki/<id> path.',
     'Do not enumerate projects with grep/Glob on sources/** or wiki/*.',
   ];
 
-  if (sources.length > 1) {
-    guidance.push(
-      `Registry lists ${sources.length} sources; selecting only one requires explicit exclude reasons for the others.`,
-    );
-  }
   if (wiki.some((item) => item.shape === 'nested-projects')) {
     guidance.push(
       'One or more wiki entries use nested-projects layout; logical projects are child directories, not wiki/*.md.',
@@ -416,7 +574,13 @@ export function formatDiscover(report: DiscoverReport): string {
           project.entryPages.length > 0
             ? project.entryPages.map((p) => path.posix.basename(p)).join(', ')
             : '(no entry pages)';
-        lines.push(`      logical: ${project.path} entry=[${pages}]`);
+        lines.push(`      logical: ${project.path} marker=[${pages}]`);
+      }
+      if (item.tree.path) {
+        lines.push('      tree:');
+        for (const treeLine of formatWikiTree(item.tree, item.truncated)) {
+          lines.push(`        ${treeLine}`);
+        }
       }
       for (const note of item.notes) {
         lines.push(`      note: ${note}`);

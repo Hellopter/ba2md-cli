@@ -1,0 +1,25 @@
+# 跨会话游标。拷到 product/<slug>/progress.yaml 后立即填 slug。
+# 禁止写入证据 ID、findings、wiki 页清单、决策表。
+# confirmed_sources 项：id, role (owner|collaborator|maybe), brief, status (open|accepted|excluded)
+# review.files：structure / evidence 相对路径，例如 reviews/content-review-1-structure.md
+version: 1
+slug: my-sdd
+node: analyze
+waiting_for: none
+intake:
+  requirement_path: ""
+  requirement_sha256: ""
+  named_sources: false
+confirmed_sources: []
+research:
+  open: []
+  accepted: 0
+draft:
+  path: ""
+  sha256: ""
+review:
+  round: 0
+  last_result: none
+  draft_sha256: ""
+  files: {}
+final: false

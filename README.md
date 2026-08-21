@@ -34,7 +34,7 @@ ba2md discover --json
 ba2md doctor
 
 # Then run Claude or OpenCode in this workspace and invoke the ba2md Skill.
-# The Skill must run `ba2md discover --json` (or read workspace.yaml) before content search.
+# The Skill must run `ba2md discover --json` before content search.
 ```
 
 ## Workspace layout
@@ -70,8 +70,9 @@ No workspace Git repo is initialized. Root `AGENTS.md` / `CLAUDE.md` are not mod
 | `ba2md requirement remove <name.md>` | Delete snapshot + registry entry |
 | `ba2md status` | Summarize resources and Skill installs |
 | `ba2md status --json` | Same summary as machine-readable JSON |
-| `ba2md discover` | Inventory managed sources/wiki and expand logical projects (nested wiki) |
-| `ba2md discover --json` | Machine-readable discovery inventory for Skill Project Discovery |
+| `ba2md discover` | Inventory managed sources/wiki, logical projects, and each wiki's structure tree |
+| `ba2md discover --json` | Same inventory as JSON, including `tree` (paths only; not page types) |
+| `ba2md check --product <dir>` | Optional: `progress.yaml` cursor vs product dir (briefs, draft, stale review) |
 | `ba2md doctor` | Health checks; nonzero exit on problems |
 | `ba2md skill install` | Install/refresh Skill into `.agents` and `.claude` |
 | `ba2md skill status` | Show digests / drift |
@@ -93,7 +94,25 @@ Commands invoked below the workspace root walk upward to the nearest `workspace.
 
 ## AI generation
 
-Install Claude Code or OpenCode, open the initialized workspace, and use the **ba2md** Skill (`$ba2md`). The Skill starts Project Discovery from `ba2md discover --json` (or `workspace.yaml` + one-level listing), uses `wiki/<id>/` (and nested logical projects) for discovery, and uses `sources/<id>/` for implementation facts. It writes under `product/`. Agents must not enumerate projects with workspace-wide `sources/**` or `wiki/*.md` searches.
+Install Claude Code or OpenCode, open the initialized workspace, and use the **ba2md** Skill (`$ba2md`). Runtime:
+
+```text
+analyze IR → consume wiki (bridge IR to the project) → lock sources
+  → research subagents write briefs/ → write draft (evidence in the draft)
+  → structure + evidence review of the draft → deliver or rewrite → wait
+```
+
+- The packaged Skill (`skill/ba2md/`) is Chinese. `{SKILL_DIR}/templates/` (`sdd.md` + `sections/`) may be replaced wholesale by an internal pack — **same layout, different markdown bodies**.
+- Resume across sessions from `product/<slug>/progress.yaml` (node, waiting_for, draft/review hashes). Copy `assets/progress-template.yaml`. Subagents do not write this file.
+- `ba2md discover --json` lists mounted `sources/<id>` and `wiki/<id>`, plus each wiki's `tree` (organizational structure). It does not classify page types. Logical-project `marker` files are not a reading order.
+- Wiki is the first bridge from the IR to the project. Reading rules live only in the Skill (`references/wiki.md`): read overview / architecture / source pages, skip `index.md`, then grep keywords and follow links. The Skill does not write `wiki-plan.json`, `wiki-position.md`, or `evidence-registry.md`.
+- The Skill asks the user only when source location is still uncertain after reading the relevant wikis. A matching owner plus wiki-judged collaborators are copied into confirmed sources without a confirmation ritual. Pending neighbours are judged from their wiki first; related ones are researched.
+- Research units land in `product/<slug>/briefs/`. One subagent per confirmed source root, not one per template section.
+- Evidence (anchors, decisions, gaps) lives in `<slug>.draft.md`. Review subagents judge that draft (structure and evidence). Fail → rewrite (research again if facts are missing). Pass → deliver and wait.
+- Review is durable only when `progress.yaml` has `last_result: DELIVER` and `review.draft_sha256` matches the current draft. Chat `REVIEW_WRITTEN` is session-local.
+- `ba2md check --product` is optional: it verifies the cursor against disk (missing progress after work started, empty briefs, stale review hashes). It is not a design-quality gate. The Skill may run it on resume.
+
+Agents must not enumerate projects with workspace-wide `sources/**` or `wiki/*.md` searches. Wiki is positioning (`SUMMARY`); precise current identifiers need anchors under `sources/<id>/` written in the draft.
 
 ## Development
 

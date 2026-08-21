@@ -1,4 +1,0 @@
-interface:
-  display_name: "ba2md"
-  short_description: "Generate source-grounded detailed design documents"
-  default_prompt: "Use $ba2md to turn Markdown requirements into a source-grounded SDD. Select plausible source projects using the wiki for discovery, verify raw implementation evidence, write a transparent draft with GAPs instead of guesses, present the draft and critical backlog then hand the floor to the user, load grilling/SKILL.md only on user lead, revise through research/write cycles, and finalize only after explicit confirmation."

@@ -3,6 +3,7 @@ import { Command } from 'commander';
 import { createRequire } from 'node:module';
 import { isCliError } from './errors.js';
 import { runDoctor, formatDoctor } from './diagnostics/doctor.js';
+import { checkProduct, formatCheck } from './diagnostics/check.js';
 import { collectDiscover, formatDiscover } from './diagnostics/discover.js';
 import { collectStatus, formatStatus, formatStatusJson } from './diagnostics/status.js';
 import { addRequirement, listRequirements, removeRequirement } from './requirements/import.js';
@@ -176,9 +177,7 @@ async function main(): Promise<void> {
 
   program
     .command('discover')
-    .description(
-      'Inventory managed sources/wiki and expand logical projects for Skill Project Discovery',
-    )
+    .description('Inventory managed sources/wiki and each wiki structure tree')
     .option('--json', 'emit machine-readable JSON')
     .action(async (options: { json?: boolean }) => {
       const { root, config } = await requireWorkspace();
@@ -188,6 +187,19 @@ async function main(): Promise<void> {
         return;
       }
       console.log(formatDiscover(report));
+    });
+
+  program
+    .command('check')
+    .description('Optional tripwires: progress.yaml cursor vs product directory')
+    .requiredOption('--product <dir>', 'product directory, e.g. product/foo-sdd')
+    .action(async (options: { product: string }) => {
+      const { root } = await requireWorkspace();
+      const report = await checkProduct(root, options.product);
+      console.log(formatCheck(report));
+      if (!report.ok) {
+        process.exitCode = 1;
+      }
     });
 
   program

@@ -5,9 +5,20 @@ import { describe, it } from 'node:test';
 import { initWorkspace } from '../workspace/init.js';
 import { addSource, addWiki } from '../resources/source.js';
 import { readWorkspaceConfig } from '../workspace/config.js';
-import { collectDiscover, formatDiscover } from '../diagnostics/discover.js';
+import {
+  collectDiscover,
+  formatDiscover,
+  type WikiOutlineNode,
+} from '../diagnostics/discover.js';
 import { collectStatus, formatStatusJson } from '../diagnostics/status.js';
 import { makeTempDir, writeFile } from './helpers.js';
+
+function flattenPages(node: WikiOutlineNode): string[] {
+  const out: string[] = [];
+  if (node.type === 'page') out.push(node.path);
+  for (const child of node.children ?? []) out.push(...flattenPages(child));
+  return out;
+}
 
 describe('discover inventory', () => {
   it('lists multiple sources as separate logical projects', async () => {
@@ -63,6 +74,77 @@ describe('discover inventory', () => {
     assert.ok(wiki.logicalProjects.every((p) => p.entryPages.length > 0));
     assert.match(formatDiscover(report), /nested-projects/);
     assert.match(formatDiscover(report), /wiki\/docs\/billing/);
+    const pages = flattenPages(wiki.tree);
+    assert.ok(pages.some((p) => p.endsWith('billing/api.md')));
+    assert.ok(pages.some((p) => p.endsWith('orders/deep/note.md')));
+    assert.equal(wiki.truncated, false);
+    assert.equal(wiki.tree.type, 'dir');
+    assert.equal('outline' in wiki, false);
+    assert.match(formatDiscover(report), /tree:/);
+    assert.doesNotMatch(formatDiscover(report), /outline:/);
+    assert.match(formatDiscover(report), /marker=/);
+    assert.doesNotMatch(formatDiscover(report), /entry=/);
+    const text = formatDiscover(report);
+    assert.match(text, /billing\//);
+    assert.match(text, /api\.md/);
+    assert.match(text, /deep\//);
+    assert.match(text, /note\.md/);
+  });
+
+  it('lists wiki tree even when source.md is absent', async () => {
+    const cwd = await makeTempDir();
+    const { root } = await initWorkspace('ws', cwd);
+    const wikiDir = path.join(cwd, 'plain-wiki');
+    await writeFile(path.join(wikiDir, 'overview.md'), '# overview\n');
+    await writeFile(path.join(wikiDir, 'architecture.md'), '# arch\n');
+    await writeFile(path.join(wikiDir, 'domains', 'billing.md'), '# billing\n');
+    await addWiki(root, wikiDir, { id: 'plain' });
+
+    const config = await readWorkspaceConfig(root);
+    const report = await collectDiscover(root, config);
+    const wiki = report.wiki[0];
+    const pages = flattenPages(wiki.tree);
+    assert.ok(pages.some((p) => p.endsWith('overview.md')));
+    assert.ok(pages.some((p) => p.endsWith('domains/billing.md')));
+    assert.equal(
+      pages.some((p) => p.endsWith('source.md')),
+      false,
+    );
+    assert.equal(wiki.tree.type, 'dir');
+    assert.ok(wiki.tree.children?.some((n) => n.path.endsWith('overview.md')));
+    assert.ok(
+      wiki.tree.children?.some(
+        (n) =>
+          n.type === 'dir' &&
+          n.path.endsWith('/domains') &&
+          n.children?.some((c) => c.path.endsWith('billing.md')),
+      ),
+    );
+    const json = JSON.stringify(wiki);
+    assert.doesNotMatch(json, /"outline"/);
+    assert.doesNotMatch(json, /"dirs"/);
+    assert.doesNotMatch(json, /"pages"/);
+    assert.match(formatDiscover(report), /tree:/);
+    assert.doesNotMatch(formatDiscover(report), /outline:/);
+    assert.doesNotMatch(formatDiscover(report), /Walk each wiki outline\.tree/);
+    assert.doesNotMatch(formatDiscover(report), /user confirmation/);
+    assert.doesNotMatch(formatDiscover(report), /Do not require source\.md/);
+    assert.doesNotMatch(formatDiscover(report), /overview\/architecture first/);
+  });
+
+  it('builds a tree when the root page is a Chinese filename', async () => {
+    const cwd = await makeTempDir();
+    const { root } = await initWorkspace('ws', cwd);
+    const wikiDir = path.join(cwd, 'cn-wiki');
+    await writeFile(path.join(wikiDir, '架构.md'), '# arch\n');
+    await addWiki(root, wikiDir, { id: 'cn' });
+
+    const config = await readWorkspaceConfig(root);
+    const report = await collectDiscover(root, config);
+    const wiki = report.wiki[0];
+    assert.ok(flattenPages(wiki.tree).some((p) => p.endsWith('架构.md')));
+    assert.ok(wiki.tree.children?.some((n) => n.path.endsWith('架构.md') && n.type === 'page'));
+    assert.match(formatDiscover(report), /架构\.md/);
   });
 
   it('treats wiki entry root with README as a single logical project', async () => {
@@ -80,6 +162,23 @@ describe('discover inventory', () => {
       report.wiki[0].logicalProjects.map((p) => p.path),
       ['wiki/one'],
     );
+  });
+
+  it('does not require select-or-exclude of every managed source', async () => {
+    const cwd = await makeTempDir();
+    const { root } = await initWorkspace('ws', cwd);
+    const a = path.join(cwd, 'svc-a');
+    const b = path.join(cwd, 'svc-b');
+    await fsp.mkdir(a);
+    await fsp.mkdir(b);
+    await writeFile(path.join(a, 'pom.xml'), '<project/>\n');
+    await writeFile(path.join(b, 'package.json'), '{}\n');
+    await addSource(root, a, { id: 'svc-a' });
+    await addSource(root, b, { id: 'svc-b' });
+
+    const config = await readWorkspaceConfig(root);
+    const report = await collectDiscover(root, config);
+    assert.doesNotMatch(formatDiscover(report), /select or exclude/);
   });
 
   it('reports unregistered orphan directories under sources/ and wiki/', async () => {
